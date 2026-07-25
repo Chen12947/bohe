@@ -1,0 +1,2854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件处理工具集 - WFP字体更改 + 小说章节删除 + 文案模仿</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(25, 25, 35, 0.9);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            border: 1px solid rgba(100, 100, 120, 0.3);
+        }
+
+        .header {
+            background: linear-gradient(90deg, #0f3460 0%, #1a1a2e 100%);
+            padding: 25px 40px;
+            text-align: center;
+            border-bottom: 1px solid rgba(100, 100, 120, 0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #a0a0c0;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            background: rgba(15, 15, 25, 0.8);
+            border-bottom: 1px solid rgba(100, 100, 120, 0.3);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 18px 20px;
+            background: transparent;
+            border: none;
+            color: #a0a0c0;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tab-button:hover {
+            background: rgba(40, 40, 60, 0.5);
+            color: #d0d0f0;
+        }
+
+        .tab-button.active {
+            color: #4cc9f0;
+            background: rgba(20, 20, 35, 0.9);
+        }
+
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 20px;
+            background: linear-gradient(to bottom, #4cc9f0, #4361ee);
+            border-radius: 2px;
+        }
+
+        .card {
+            background: rgba(30, 30, 40, 0.7);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            border: 1px solid rgba(100, 100, 120, 0.2);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(100, 150, 255, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #c0c0e0;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(100, 100, 120, 0.4);
+            border-radius: 10px;
+            color: #f0f0f0;
+            font-size: 15px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4cc9f0;
+            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
+        }
+
+        .form-control::placeholder {
+            color: #8080a0;
+        }
+
+        .color-preview {
+            width: 60px;
+            height: 40px;
+            border-radius: 8px;
+            border: 1px solid rgba(100, 100, 120, 0.5);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .color-preview:hover {
+            transform: scale(1.05);
+        }
+
+        .button {
+            padding: 14px 28px;
+            background: linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .button.secondary {
+            background: linear-gradient(90deg, #6c757d 0%, #495057 100%);
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .button.secondary:hover:not(:disabled) {
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+        }
+
+        .button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .log-area {
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(100, 100, 120, 0.4);
+            border-radius: 10px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #d0d0f0;
+            height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .log-area::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-area::-webkit-scrollbar-track {
+            background: rgba(20, 20, 30, 0.5);
+            border-radius: 4px;
+        }
+
+        .log-area::-webkit-scrollbar-thumb {
+            background: linear-gradient(to bottom, #4cc9f0, #4361ee);
+            border-radius: 4px;
+        }
+
+        .file-info {
+            background: rgba(40, 40, 60, 0.5);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid #4cc9f0;
+        }
+
+        .file-info p {
+            margin: 5px 0;
+            color: #c0c0e0;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-idle {
+            background: rgba(108, 117, 125, 0.3);
+            color: #a0a0c0;
+        }
+
+        .status-processing {
+            background: rgba(255, 193, 7, 0.3);
+            color: #ffc107;
+        }
+
+        .status-success {
+            background: rgba(40, 167, 69, 0.3);
+            color: #28a745;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.3);
+            color: #dc3545;
+        }
+
+        .drag-drop-area {
+            border: 2px dashed rgba(100, 100, 120, 0.5);
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(20, 20, 30, 0.5);
+        }
+
+        .drag-drop-area:hover,
+        .drag-drop-area.dragover {
+            border-color: #4cc9f0;
+            background: rgba(30, 30, 45, 0.7);
+        }
+
+        .drag-drop-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #4cc9f0;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(30, 30, 45, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            border-top: 4px solid #4cc9f0;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #4cc9f0;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #a0a0c0;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 25px;
+            color: #8080a0;
+            font-size: 14px;
+            border-top: 1px solid rgba(100, 100, 120, 0.3);
+            background: rgba(15, 15, 25, 0.8);
+        }
+
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.3);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #ffc107;
+        }
+
+        .warning-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .preview-canvas {
+            width: 100%;
+            height: 120px;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 10px;
+            border: 1px solid rgba(100, 100, 120, 0.4);
+        }
+
+        .file-list {
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(100, 100, 120, 0.4);
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .file-item {
+            padding: 8px 12px;
+            margin: 5px 0;
+            background: rgba(30, 30, 45, 0.5);
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item-name {
+            flex: 1;
+            color: #e0e0e0;
+        }
+
+        .file-item-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .file-item-remove:hover {
+            background: #c82333;
+        }
+
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .style-manager {
+            background: rgba(30, 30, 45, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .style-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .style-input-group input {
+            flex: 1;
+        }
+
+        .style-select {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .color-picker-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(30, 30, 40, 0.95);
+            border: 1px solid rgba(100, 100, 120, 0.5);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            z-index: 10000;
+            display: none;
+            min-width: 300px;
+        }
+
+        .color-picker-container.active {
+            display: block;
+        }
+
+        .color-picker-container .picker-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(100, 100, 120, 0.3);
+        }
+
+        .color-picker-container .picker-title {
+            color: #f0f0f0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .color-picker-container .picker-close {
+            background: transparent;
+            border: none;
+            color: #a0a0c0;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .color-picker-container .picker-close:hover {
+            background: rgba(100, 100, 120, 0.3);
+            color: #f0f0f0;
+        }
+
+        .color-picker-container input[type="color"] {
+            width: 100%;
+            height: 150px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+
+        .color-picker-container .color-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .color-picker-container .color-input-row label {
+            color: #c0c0e0;
+            font-size: 14px;
+            min-width: 60px;
+        }
+
+        .color-picker-container .color-input-row input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(100, 100, 120, 0.4);
+            border-radius: 6px;
+            color: #f0f0f0;
+            font-size: 14px;
+        }
+
+        .color-picker-container .color-input-row input[type="text"]:focus {
+            outline: none;
+            border-color: #4cc9f0;
+            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
+        }
+
+        .color-picker-container .picker-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .color-picker-container .picker-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .color-picker-container .picker-buttons .btn-confirm {
+            background: linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%);
+            color: white;
+        }
+
+        .color-picker-container .picker-buttons .btn-confirm:hover {
+            opacity: 0.9;
+        }
+
+        .color-picker-container .picker-buttons .btn-cancel {
+            background: rgba(100, 100, 120, 0.3);
+            color: #e0e0e0;
+        }
+
+        .color-picker-container .picker-buttons .btn-cancel:hover {
+            background: rgba(100, 100, 120, 0.5);
+        }
+
+        .color-picker-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: none;
+        }
+
+        .color-picker-overlay.active {
+            display: block;
+        }
+
+        /* 密码保护样式 */
+        .password-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            z-index: 100000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-container {
+            background: rgba(25, 25, 35, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .password-container h2 {
+            font-size: 24px;
+            font-weight: 600;
+            background: linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .password-container p {
+            color: #a0a0c0;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .password-input-group {
+            margin-bottom: 20px;
+        }
+
+        .password-input-group input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(20, 20, 30, 0.8);
+            border: 1px solid rgba(100, 100, 120, 0.4);
+            border-radius: 10px;
+            color: #f0f0f0;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .password-input-group input:focus {
+            outline: none;
+            border-color: #4cc9f0;
+            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.2);
+        }
+
+        .password-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        .password-button {
+            width: 100%;
+            padding: 14px 28px;
+            background: linear-gradient(90deg, #4cc9f0 0%, #4361ee 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(67, 97, 238, 0.3);
+        }
+
+        .password-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(67, 97, 238, 0.4);
+        }
+
+        .password-button:active {
+            transform: translateY(0);
+        }
+
+        .api-key-hint {
+            font-size: 12px;
+            color: #8080a0;
+            margin-top: 4px;
+        }
+        .model-selector {
+            background: rgba(20, 20, 30, 0.5);
+            border-radius: 8px;
+            padding: 6px 12px;
+            border: 1px solid rgba(100, 100, 120, 0.3);
+            color: #f0f0f0;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .model-selector:focus {
+            outline: none;
+            border-color: #4cc9f0;
+        }
+    </style>
+</head>
+<body>
+    <!-- 密码保护界面 -->
+    <div class="password-overlay" id="password-overlay">
+        <div class="password-container">
+            <h2>🔒 需要密码访问</h2>
+            <p>请输入访问密码</p>
+            <div class="password-input-group">
+                <input type="password" id="password-input" placeholder="请输入密码" autocomplete="off" autofocus>
+                <div class="password-error" id="password-error"></div>
+            </div>
+            <button class="password-button" onclick="checkPassword()">确认</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="header">
+            <h1>文件处理工具集</h1>
+            <p>WFP字体更改 + 章节删除 + 文案模仿 | 作者：薄荷QQ3024915668</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" onclick="switchTab('tab1')">WFP字体更改</button>
+            <button class="tab-button" onclick="switchTab('tab2')">小说章节删除</button>
+            <button class="tab-button" onclick="switchTab('tab3')">文案模仿</button>
+        </div>
+
+        <!-- 选项卡1: WFP字体更改 -->
+        <div id="tab1" class="tab-content active">
+            <div class="two-column" style="align-items: stretch;">
+                <!-- 左侧：配置面板 -->
+                <div style="display: flex; flex-direction: column;">
+                    <div class="section-title">字体配置</div>
+                    <div class="card" style="flex: 1; display: flex; flex-direction: column; margin-bottom: 0;">
+                        <div class="form-group">
+                            <label class="form-label">字体名称（w11自带）</label>
+                            <select class="form-control" id="font-name">
+                                <option value="Microsoft YaHei">微软雅黑</option>
+                                <option value="SimSun">宋体</option>
+                                <option value="SimHei">黑体</option>
+                                <option value="FangSong">仿宋</option>
+                                <option value="Arial">Arial</option>
+                                <option value="Times New Roman">Times New Roman</option>
+                                <option value="Verdana">Verdana</option>
+                                <option value="Tahoma">Tahoma</option>
+                                <option value="Consolas">Consolas</option>
+                                <option value="Segoe UI">Segoe UI</option>
+                                <option value="Open Sans">Open Sans</option>
+                                <option value="Ubuntu">Ubuntu</option>
+                                <option value="Source Sans Pro">Source Sans Pro</option>
+                                <option value="Roboto">Roboto</option>
+                                <option value="Lato">Lato</option>
+                                <option value="Merriweather">Merriweather</option>
+                                <option value="Palatino">Palatino</option>
+                                <option value="Garamond">Garamond</option>
+                                <option value="Book Antiqua">Book Antiqua</option>
+                                <option value="Georgia">Georgia</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">字体大小</label>
+                            <input type="number" class="form-control" id="font-size" value="32" min="10" max="100">
+                        </div>
+
+                        <!-- 预览区域 -->
+                        <div class="form-group">
+                            <label class="form-label">实时预览</label>
+                            <canvas id="preview-canvas" class="preview-canvas"></canvas>
+                        </div>
+
+                        <!-- 样式管理 -->
+                        <div class="form-group">
+                            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="color: #c0c0e0; font-weight: 500; white-space: nowrap; font-size: 14px;">生成样式：</span>
+                                <button class="button secondary" onclick="generateStyle()" style="padding: 8px 16px; white-space: nowrap; font-size: 14px;">生成样式</button>
+                                <input type="text" class="form-control" id="style-string" placeholder="粘贴样式字符串..." style="flex: 1; min-width: 200px; padding: 8px 12px; font-size: 14px;">
+                                <button class="button secondary" onclick="loadStyleFromString()" style="padding: 8px 16px; white-space: nowrap; font-size: 14px;">加载样式</button>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">文字颜色</label>
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div class="color-preview" id="text-color-preview" style="background-color: #FFCC4F;" onclick="openColorPicker('text-color')"></div>
+                                <input type="text" class="form-control" id="text-color" value="#FFCC4F" style="flex: 1;" onchange="updateColorPreview('text-color', 'text-color-preview')">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">描边设置</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="border-enable" checked onchange="updatePreview()">
+                                    <span>启用描边</span>
+                                </label>
+                                <div class="color-preview" id="border-color-preview" style="background-color: #000000;" onclick="openColorPicker('border-color')"></div>
+                                <input type="number" class="form-control" id="border-size" value="5" min="1" max="20" onchange="updatePreview()">
+                            </div>
+                            <input type="text" class="form-control" id="border-color" value="#000000" style="display: none;" onchange="updateColorPreview('border-color', 'border-color-preview')">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">阴影设置</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 10px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" id="shadow-enable" checked onchange="updatePreview()">
+                                    <span>启用阴影</span>
+                                </label>
+                                <div class="color-preview" id="shadow-color-preview" style="background-color: #000000;" onclick="openColorPicker('shadow-color')"></div>
+                                <input type="number" class="form-control" id="shadow-blur" value="4" min="1" max="20" onchange="updatePreview()">
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                <div>
+                                    <label class="form-label">模糊半径</label>
+                                    <input type="number" class="form-control" id="shadow-blur-radius" value="4" min="1" max="20" onchange="updatePreview()">
+                                </div>
+                                <div>
+                                    <label class="form-label">阴影距离</label>
+                                    <input type="number" class="form-control" id="shadow-distance" value="1" min="1" max="20" onchange="updatePreview()">
+                                </div>
+                            </div>
+                            <input type="text" class="form-control" id="shadow-color" value="#000000" style="display: none;" onchange="updateColorPreview('shadow-color', 'shadow-color-preview')">
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 右侧：文件处理 -->
+                <div style="display: flex; flex-direction: column;">
+                    <div class="section-title">文件处理</div>
+                    <div class="card" style="margin-bottom: 25px;">
+                        <div class="form-group">
+                            <label class="form-label">选择WFP文件</label>
+                            <div class="drag-drop-area" id="wfp-drop-area" onclick="document.getElementById('wfp-file-input').click()">
+                                <div class="drag-drop-icon">📁</div>
+                                <p>拖放WFP文件到这里，或点击选择文件</p>
+                                <p style="font-size: 13px; margin-top: 10px; color: #a0a0c0;">支持单个或多个WFP文件</p>
+                            </div>
+                            <input type="file" id="wfp-file-input" multiple accept=".wfp" style="display: none;" onchange="handleWFPFiles(this.files)">
+
+                            <div class="file-list" id="wfp-file-list" style="display: none;">
+                                <div id="wfp-file-items"></div>
+                            </div>
+                        </div>
+
+                        <div class="button-group">
+                            <button class="button" onclick="processWFPFiles()">开始处理</button>
+                            <button class="button secondary" onclick="clearWFPFiles()">清空列表</button>
+                        </div>
+                    </div>
+
+                    <div class="section-title" style="margin-top: 0;">处理日志</div>
+                    <div class="card" style="flex: 1; display: flex; flex-direction: column; min-height: 0; margin-bottom: 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
+                            <div>
+                                <span class="status-indicator status-idle" id="wfp-status">等待处理</span>
+                            </div>
+                            <button class="button secondary" onclick="clearLog('wfp-log')" style="padding: 8px 16px;">清空日志</button>
+                        </div>
+                        <div class="log-area" id="wfp-log" style="flex: 1; min-height: 0;">欢迎使用WFP字体更改工具！\n\n请选择要处理的WFP文件，然后点击"开始处理"按钮。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 选项卡2: 小说章节删除 -->
+        <div id="tab2" class="tab-content">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="two-column" style="align-items: stretch;">
+                    <!-- 左侧：文件输入 -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="section-title">文件处理</div>
+                        <div class="card" style="height: 500px; display: flex; flex-direction: column;">
+                            <div class="form-group">
+                                <label class="form-label">选择小说文本文件</label>
+                                <div class="drag-drop-area" id="novel-drop-area" onclick="document.getElementById('novel-file-input').click()" style="padding: 20px;">
+                                    <div class="drag-drop-icon" style="font-size: 32px; margin-bottom: 8px;">📖</div>
+                                    <p style="margin: 0; font-size: 13px;">拖放TXT文件到这里，或点击选择文件</p>
+                                </div>
+                                <input type="file" id="novel-file-input" accept=".txt" style="display: none;" onchange="handleNovelFile(this.files[0])">
+
+                                <div class="file-info" id="novel-file-info" style="margin-top: 10px;">
+                                    <p style="margin: 5px 0;"><strong>已选择文件：</strong> <span id="novel-file-name">0</span></p>
+                                    <p style="margin: 5px 0;"><strong>文件大小：</strong> <span id="novel-file-size">0 B</span></p>
+                                    <p style="margin: 5px 0;"><strong>字符数量：</strong> <span id="novel-char-count">0 字符</span></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">处理选项</label>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="remove-chapters" checked>
+                                        <span>删除章节标题</span>
+                                    </label>
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="remove-sequences" checked>
+                                        <span>删除纯数字序列号</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="button-group" style="margin-top: auto;">
+                                <button class="button" onclick="processNovelFile()">处理文件</button>
+                                <button class="button secondary" onclick="clearNovelFile()">清除选择</button>
+                            </div>
+                        </div>
+
+                        <div class="stats" id="novel-stats" style="display: none; margin-top: 15px;">
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-chapters">0</div>
+                                <div class="stat-label">删除的章节标题</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-sequences">0</div>
+                                <div class="stat-label">删除的数字序列</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：内容显示 -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="section-title">处理结果</div>
+                        <div class="card" style="height: 500px; display: flex; flex-direction: column; margin-bottom: 0;">
+                            <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-shrink: 0;">
+                                <button class="button secondary" onclick="showNovelTab('original')" style="flex: 1; padding: 10px;">原始内容</button>
+                                <button class="button secondary" onclick="showNovelTab('processed')" style="flex: 1; padding: 10px;">处理结果</button>
+                                <button class="button secondary" onclick="showNovelTab('deleted')" style="flex: 1; padding: 10px;">删除的章节</button>
+                            </div>
+
+                            <div id="novel-original" class="log-area" style="display: none; flex: 1; min-height: 0; overflow-y: auto;"></div>
+                            <div id="novel-processed" class="log-area" style="display: block; flex: 1; min-height: 0; overflow-y: auto;"></div>
+                            <div id="novel-deleted" class="log-area" style="display: none; flex: 1; min-height: 0; overflow-y: auto;"></div>
+
+                            <div class="button-group" style="margin-top: 15px; flex-shrink: 0;">
+                                <button class="button" onclick="saveNovelResult()">保存处理结果</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 处理日志：放在下方，跨两列 -->
+                <div style="margin-top: 20px;">
+                    <div class="section-title">处理日志</div>
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <span class="status-indicator status-idle" id="novel-status">等待处理</span>
+                            </div>
+                            <button class="button secondary" onclick="clearLog('novel-log')" style="padding: 8px 16px;">清空日志</button>
+                        </div>
+                        <div class="log-area" id="novel-log" style="height: 150px;">欢迎使用小说章节删除工具！\n\n请选择要处理的TXT文件，然后点击"处理文件"按钮。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 选项卡3: 文案模仿 -->
+        <div id="tab3" class="tab-content">
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <div class="two-column" style="align-items: stretch;">
+                    <!-- 左侧：配置和输入 -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="section-title">配置与输入</div>
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+                            <div class="form-group">
+                                <label class="form-label">DeepSeek API Key</label>
+                                <input type="password" class="form-control" id="deepseek-api-key" placeholder="请输入DeepSeek API Key">
+                                <p class="api-key-hint">API Key将保存在浏览器本地，不会上传到服务器。</p>
+                            </div>
+
+                            <!-- 新增模型选择 -->
+                            <div class="form-group">
+                                <label class="form-label">选择模型</label>
+                                <select class="form-control model-selector" id="model-selector">
+                                    <option value="deepseek-v4-pro">deepseek-v4-pro (推荐，质量高)</option>
+                                    <option value="deepseek-v4-flash">deepseek-v4-flash (速度快)</option>
+                                </select>
+                                <p class="api-key-hint">v4-pro 适合复杂任务，v4-flash 适合快速生成。</p>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">文案模板（已预置）</label>
+                                <button class="button secondary" onclick="loadCustomTemplate()" style="margin-top: 10px; width: 100%;">或选择自定义模板文件</button>
+                                <input type="file" id="template-file-input" accept=".txt" style="display: none;" onchange="handleTemplateFile(this.files[0])">
+
+                                <div class="file-info" id="template-file-info" style="margin-top: 10px; display: none;">
+                                    <p style="margin: 5px 0;"><strong>已选择：</strong> <span id="template-file-name">无</span></p>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">原文文件（待处理）</label>
+                                <div class="drag-drop-area" id="source-drop-area" onclick="document.getElementById('source-file-input').click()" style="padding: 20px;">
+                                    <div class="drag-drop-icon" style="font-size: 32px; margin-bottom: 8px;">📖</div>
+                                    <p style="margin: 0; font-size: 13px;">拖放待处理的TXT文件到这里，或点击选择文件</p>
+                                </div>
+                                <input type="file" id="source-file-input" accept=".txt" style="display: none;" onchange="handleSourceFile(this.files[0])">
+
+                                <div class="file-info" id="source-file-info" style="margin-top: 10px; display: none;">
+                                    <p style="margin: 5px 0;"><strong>已选择：</strong> <span id="source-file-name">无</span></p>
+                                    <p style="margin: 5px 0;"><strong>文件大小：</strong> <span id="source-file-size">0 B</span></p>
+                                    <p style="margin: 5px 0;"><strong>字符数量：</strong> <span id="source-char-count">0 字符</span></p>
+                                </div>
+                            </div>
+
+                            <div class="button-group" style="margin-top: auto;">
+                                <button class="button" onclick="generateCopywriting()" id="generate-btn">生成文案</button>
+                                <button class="button secondary" onclick="clearCopywritingFiles()">清除文件</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：输出结果 -->
+                    <div style="display: flex; flex-direction: column;">
+                        <div class="section-title">生成结果</div>
+                        <div class="card" style="flex: 1; display: flex; flex-direction: column; min-height: 600px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-shrink: 0;">
+                                <div>
+                                    <span class="status-indicator status-idle" id="copywriting-status">等待处理</span>
+                                </div>
+                                <button class="button secondary" onclick="saveCopywritingResult()" id="save-btn" style="padding: 8px 16px; display: none;">保存结果</button>
+                            </div>
+
+                            <div class="log-area" id="copywriting-result" style="flex: 1; min-height: 0; overflow-y: auto;">生成的结果将显示在这里...</div>
+
+                            <!-- 分页控制 -->
+                            <div style="display: none; flex-shrink: 0; margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(100, 100, 120, 0.3);" id="pagination-controls">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <button class="button secondary" onclick="previousPage()" id="prev-btn" style="padding: 8px 16px;">上一个</button>
+                                    <span id="page-info" style="color: #c0c0e0; font-size: 14px;">第 1 页 / 共 1 页</span>
+                                    <button class="button secondary" onclick="nextPage()" id="next-btn" style="padding: 8px 16px;">下一个</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 处理日志 -->
+                <div style="margin-top: 20px;">
+                    <div class="section-title">处理日志</div>
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                            <div>
+                                <span class="status-indicator status-idle" id="copywriting-log-status">就绪</span>
+                            </div>
+                            <button class="button secondary" onclick="clearLog('copywriting-log')" style="padding: 8px 16px;">清空日志</button>
+                        </div>
+                        <div class="log-area" id="copywriting-log" style="height: 150px;">欢迎使用文案模仿工具！\n\n请先配置DeepSeek API Key，然后选择文案模板文件和原文文件，点击"生成文案"按钮开始处理。</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 文件处理工具集 | 网页版</p>
+        </div>
+    </div>
+
+    <!-- 颜色选择器弹窗 -->
+    <div class="color-picker-overlay" id="color-picker-overlay" onclick="closeColorPicker()"></div>
+    <div class="color-picker-container" id="color-picker-container">
+        <div class="picker-header">
+            <span class="picker-title" id="picker-title">选择颜色</span>
+            <button class="picker-close" onclick="closeColorPicker()">×</button>
+        </div>
+        <input type="color" id="color-picker-input" value="#FFCC4F" onchange="updatePickerColor(this.value)">
+        <div class="color-input-row">
+            <label>颜色值：</label>
+            <input type="text" id="color-picker-hex" value="#FFCC4F" placeholder="#FFFFFF" onchange="updatePickerFromHex(this.value)">
+        </div>
+        <div class="picker-buttons">
+            <button class="btn-confirm" onclick="confirmColorPicker()">确定</button>
+            <button class="btn-cancel" onclick="closeColorPicker()">取消</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== 密码保护 ====================
+        const ACCESS_PASSWORD = '2026';
+
+        function checkPassword() {
+            const input = document.getElementById('password-input');
+            const error = document.getElementById('password-error');
+            const password = input.value.trim();
+
+            if (password === ACCESS_PASSWORD) {
+                document.getElementById('password-overlay').style.display = 'none';
+                sessionStorage.setItem('password_verified', 'true');
+            } else {
+                error.textContent = '密码错误，请重试';
+                input.value = '';
+                input.focus();
+                input.style.borderColor = '#dc3545';
+                setTimeout(() => {
+                    input.style.borderColor = '';
+                }, 1000);
+            }
+        }
+
+        document.getElementById('password-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                checkPassword();
+            }
+        });
+
+        if (sessionStorage.getItem('password_verified') === 'true') {
+            document.getElementById('password-overlay').style.display = 'none';
+        }
+
+        // ==================== 全局变量 ====================
+        let wfpFiles = [];
+        let novelFile = null;
+        let novelContent = '';
+        let processedContent = '';
+        let deletedItems = { chapters: [], sequences: [] };
+        let currentNovelTab = 'processed';
+
+        // 文案模仿相关变量
+        const DEFAULT_TEMPLATE_CONTENT = `
+        下面是小说前三章：写成文案后的表现形式。
+上面是文案
+下面是愿望学习一下
+学习完后：以一另一个txt文件为原文，模仿例子写出文案部分（没有标点符号，句与句子之间分行）：
+
+
+例子1：
+
+文案：
+穿越斗罗大陆世界
+你重生在了故事开始的地方圣魂村
+在来到这个世界的第六年后你也即将觉醒自己的武魂
+此刻看着和你一起即将觉醒武魂的孩子们
+你的神色突然凝重了起来
+因为你看到那个村长口中叫做唐三的孩子双手隐隐泛着白光
+双眼之见透露着一股紫气
+蜀中唐门的玄玉手和紫极魔瞳
+这个世界怎么会出现原先世界的唐门武学
+见此你的思绪也回到了前世
+前世的你是剑仙李白所创青莲宗的弟子
+却因为天赋超群狂妄自大
+在自觉剑道修为到达了瓶颈的时候
+竟然在雷雨天想要与天雷一战
+借雷霆洗礼剑道突破自身
+
+原文：
+书名: 我在斗罗大陆当剑仙
+作者: 大熊奶茶店
+简介:
+作者新书：《我刷短视频通绝世，霍雨浩惊呆了》，新的故事新的主角，不变的是水平和质量，麻烦好评投票支持一下，兄弟们，剑仙林白为你们点赞。
+（精品斗罗同人，感兴趣的书友请多评论多投票谢谢。）
+宁荣荣：白哥，我给你上buff，狠狠揍他。
+朱竹清：白哥你太棒了。
+千仞雪：林白，你是真正的英雄。
+天梦哥：年轻的剑仙呦，未来在你手中。
+帝天：林白，谢谢你。
+剑修林白来到斗罗大陆，意外得到了青莲剑仙李白的佩剑和功法，且看他如何翻云覆雨，左右整个大陆局势吧。
+
+第1章 武魂：七星龙渊剑
+
+斗罗大陆，天斗帝国西南，法斯诺行省。
+　　圣魂村，一个位于法思诺行省诺丁城南一个只有三百余户的小村，因为百年前这里曾经走出过一位魂圣级别的魂师，从而得名圣魂村。
+　　村里的小路上，一位身材瘦长但是精神矍铄的老人带着两个五六岁的孩子边走边聊。
+　　"小三小白，你们两个到了那里不要乱说话惹怒了武魂殿的大人。你们两个孩子都是我看着长大的，希望你们都能觉醒强大的武魂，我们圣魂村的荣誉还要靠你们继承啊。"老人回过头，笑着对身后的两个孩子道。
+　　老人是圣魂村的村长杰克，今年已经六十多岁了，今天他特地请来了诺丁城的武魂分殿的执事大人来帮助村子里的孩子们觉醒武魂。
+　　看着身后两个一脸平静的孩子，杰克村长不禁感慨地叹了口气。村里同龄的孩子里，只有唐三和林白两个孩子最成熟。
+　　唐三是因为有一个不靠谱的老爹——村里的铁匠唐昊，天天帮着家里做饭洗衣。听说唐昊前几天还教唐三锻造，这不是胡来吗。还没到六岁的孩子，让他干这么重的活，迟早要把孩子折腾坏了。
+　　想到这，杰克村长摸着下巴，准备今天好好找唐昊谈一下。
+　　至于林白，就比唐三生活的更加艰难了。林白当初是一个弃婴，万幸被村里好心的木匠夫妇收养，但在林白三岁的时候，木匠夫妇也得了急病去世了。林白自小吃百家饭长大，也帮着村里单身的汉子洗洗衣服收拾屋子挣点小钱，再加上自己这个村长的接济，总算是没有饿死，但看上去面黄肌瘦的，一副营养不良的样子。
+　　虽然林白的遭遇悲惨，却十分懂事，就算饿的昏倒在街边也没有偷过村里人的任何东西，而且见人就阿姨叔叔爷爷奶奶的叫着，嘴很甜，村里的人都很喜欢这个懂事的孩子。
+　　林白抱着怀里的木剑，看了身边的唐三一眼，疑惑地皱起了眉头。
+　　唐三虽然才不到六岁，和现在的他差不多大，但是观其相貌神完气足，双手隐隐泛着白玉的光泽，双眼开阖之间，一缕紫芒不时透出。
+　　"蜀中唐门，玄玉手？紫极魔瞳？"林白心中暗忖，"可是这个世界怎么会出现原先世界的唐门武学，莫非他也是？"
+　　林白本是天山青莲剑宗的弟子，当初剑仙李白假死，实际却是回到了故乡碎叶城，在天山开宗立派，创立了青莲剑宗，而林白正是青莲剑宗当代掌门李慕白的关门弟子。
+　　前世的林白过于自大，在自觉剑道修为到达了瓶颈的时候，竟然在雷雨天想要与天雷一战，借雷霆洗礼剑道，突破自身，最终他失败了，但也成功了。
+　　他被足足九道天雷劈的奄奄一息，却也借天雷之力硬生生轰开了剑宗的地下密室，找到了剑宗失传的内功心法《太玄经》与剑仙绝学《侠客行》剑法。
+　　但他虽然得到了剑仙的绝学，却已经被天雷重伤，根本无力修炼。
+　　在生命最后的一年时间里，他观看完了这两本旷世绝学，然后把他们交给了自己的师父李慕白，也算是完成了他的一个心愿，为后世的剑道修士留下了登天的长梯。
+　　自以为身死道消的林白却意外重生在了斗罗大陆圣魂村，但命运又和他开了一个玩笑。收养他的好心木匠夫妇身染急病而死，他只能靠着好心的村民的接济，吃百家饭长大。
+　　想到这里，他摸了摸自己怀里的小木剑，叹了口气，为何好人都不长命呢。
+　　这柄小木剑是木匠在他两岁的时候给他做的玩具，他至今都当做宝贝珍藏着，剑不离身。哪怕在他最饿的时候，村里的孩子们要用食物跟他换这柄小木剑，他也咬着牙没有答应。
+　　唐三也偷偷打量着身边的林白，他从别人口中听过林白这个名字，也很佩服林白的坚强。毕竟他前世也是无父无母，遇到和曾经的自己遭遇相近的林白不禁生出了一丝同情。
+　　但唐三仔细打量林白后，却心中暗自震惊。这林白看似面黄肌瘦，实际上却是神华内敛，尤其是二人刚才对视了一眼，自己的紫极魔瞳仿佛看到了一柄绝世神剑，被神剑的锋芒伤到了眼睛。
+　　"哎呦。"唐三一声痛呼，揉了揉自己的双眼。
+　　老杰克吓了一跳，转过身忙问道："小三怎么了。眼睛不舒服吗？"
+　　"没事，杰克爷爷，我们赶紧走吧，不要耽误了觉醒仪式。"唐三揉了揉发红的眼眶道。
+　　说完，唐三又暗暗看了林白一眼，但这次他并没有运起紫极魔瞳。这次并无事情发生，自己的眼睛没有受伤。
+　　"居然是天生剑胎。可是不对啊，就算是天生剑胎，一个没修炼的普通人怎么可能伤得到我。"唐三心中疑惑道，但他也没多想，和林白二人跟着老杰克村长前往了村子中心的武魂殿。
+　　铁匠铺里，喝醉了酒正在沉睡的唐昊双眼突然睁开了一条缝，尺许的精芒暴射而出，桌上的杯盘都被一股强大的气势震得掉落在了地上，碎成了一地瓷片。
+　　"又是一个吗？"唐昊喃喃道，接着又合上了眼睛，不一会便打起了呼噜。
+　　村子里所谓的武魂殿，不过是一间大点的木屋而已。今年村子进行武魂觉醒的孩子总共有九个，唐三和林白二人排在最后面。
+　　除了村长和要进行觉醒的九个孩子外，武魂殿里还有一个二十多岁的青年，剑眉星目，相貌俊朗，身着武魂殿直属人员的标准制服，白色劲装，黑色披风，胸前正中心写着一个拳头大小的魂字，青年左胸上的徽章有三柄长剑交错。
+　　林白来到斗罗大陆六年了，也对修炼的等级划分有了一些了解。
+　　并不是所有的武魂都能修炼，大部分是无法修炼的，只有少部分的武魂才能先天产生魂力，也才能有修炼魂力的资格。
+　　青年胸口的徽章代表他是一名战魂大师，按他的年纪来说也算不错了。
+　　老杰克和青年简单地交谈了几句，便走出了武魂殿。
+　　青年让九个孩子站成一排，对他们微笑道："我叫素云涛，二十六级大魂师，是你们的领路人。现在我将逐一对你们进行武魂觉醒。记住，无论发生什么事都不要害怕。"
+　　素云涛从自己的包裹中取出了两样东西，六颗乌黑的圆形石头和一枚闪亮的蓝色水晶球。他把黑色石头摆成了一个六角形，让第一个孩子站到里面去。
+　　素云涛低喝一声："独狼，附体。"
+　　瞬间，他全身都长出了黑色的毛发，双眼泛着绿光，一双手变成了一对利爪。两圈光环从他脚下亮起，不断地从头到脚徘徊着，一个是白色，另一个则是黄色。
+　　六角形中间的孩子惊叫一声，转身就想跑，却被素云涛一把抓住："说了不用怕，这是我的武魂独狼，如果你们以后也能成为魂师的话，也可以使用类似的能力。"
+　　林白和唐三二人都没有害怕，反而是同时功运全身。
+　　唐三眼中紫芒吞吐，一双手隐泛白玉颜色。
+　　林白则是身躯挺直，怀中木剑发出阵阵龙吟。
+　　看到素云涛并没有想要攻击他们，二人对视一眼，互相笑了笑，继续看起了觉醒仪式。
+　　很快，前面几个孩子都已经测试完毕，都没有魂力天赋。
+　　轮到唐三了，他站在六角形中央，配合着素云涛的操作，数不清的金色光点包围了唐三，唐三张开手，一株蓝银草出现在了他的右手掌心。
+　　"又是一个废武魂。"素云涛懊恼道，接着便要呼唤林白上前。但是在唐三的再三坚持之下，素云涛还是给唐三测试了魂力。
+　　唐三把手贴紧蓝色水晶球，顿时体内玄天功的内力源源不断地被吸入了水晶球中，水晶球顿时露出了蓝宝石一般的光晕，整个水晶球都在闪闪发亮。
+　　"天啊，竟然是先天满魂力，可惜你是个废武魂。"素云涛叹息一声道。
+　　唐三也不在意，问了素云涛一些修炼的常识，然后就退到了一边，双目炯炯看向了林白。
+　　林白听到唐三与素云涛刚才的几句对话，顿时了解了这个世界的大致修行体系等级，以及自己最在意的问题：为什么自己无论怎么修炼，体内的真气都不再增长了。
+　　"原来必须要附加魂环才能进入下一个等级，看来有机会要去猎杀一只魂兽了。"林白思索道，"根据刚才的感应，这个唐三与我的功力在伯仲之间，看来我也是先天满魂力，那我的武魂会是什么呢？"
+　　"林白！"一声呼唤顿时打断了林白的思考，他抬起头，看到素云涛正一脸不耐烦的看着自己。
+　　也不怪素云涛这副表情，好不容易看到一个先天满魂力的苗子，却是个废武魂蓝银草，怎么能让他心情好呢。
+　　林白不好意思地挠了挠头，站到了黑色石头布成的六角形阵法中央，素云涛向六块石头内输入了他的魂力。
+　　顿时，阵法内金色光芒亮起，林白感觉一股暖意覆盖全身，自己的真气在那股暖意作用下微微波动着，紧接着体内仿佛有什么东西破碎了，所有的暖意涌向右手手掌。
+　　"铮铮铮"龙吟阵阵，一柄长剑瞬间出现在了林白右手上。
+　　林白体内真气激荡，禁不住仰天长啸，屋内墙上悬挂的兵器全部掉落在了地上，一旁放置兵器的架子也倒了下去，仿佛所有兵器都必须跪伏在这柄神剑之下。
+　　素云涛仿佛遇到了什么让人恐惧的事物，武魂瞬间被解除，一屁股坐在了地上，额头上全是冷汗。
+　　唐三看着林白手中的剑，感觉似曾相识，似乎前世在唐门的宗门典籍中看过关于这柄长剑的介绍。
+　　林白手提长剑，看向剑身，感觉自己如同站在高高的山谷上俯视万丈深渊，深渊底部有一条巨大的神龙在盘卧。
+　　他心中顿时激动不已，-这柄剑竟然是青莲剑宗的镇宗之宝，剑仙李白的佩剑，号称"诚信与高洁之剑"的上古神剑——七星龙渊。
+　　作者新书：《斗罗：绝世之唐家弃子，誓杀唐三》，新的故事新的主角，不变的是水平和质量，麻烦好评投票支持一下，兄弟们，剑仙林白为你们点赞。
+
+第2章 与唐三切磋
+
+素云涛身体仍在微微颤抖，他用沙哑的嗓音问道："这是什么武魂。"
+　　素云涛在诺丁城周围的村镇帮忙做武魂觉醒也不是一年两年了，但他从没见过如此可怕的武魂。
+　　他的独狼武魂在林白手中那把剑的威压下居然被生生逼回了体内，要知道他可是二十六级的大魂师啊，林白一个刚觉醒武魂的小屁孩，撑死也就十级魂力，他是怎么做到这一点的。
+　　想到魂力，素云涛连忙站起来，把蓝色的水晶球递给了林白："把手放上去。"
+　　"我也想放啊，可是这剑怎么收回去啊。"林白苦笑道，莫非他还要给七星龙渊剑打个剑鞘不成。
+　　"将意念凝于识海，命令你的武魂回归身体即可。"素云涛没想到这个孩子连怎么收回武魂都不了解。
+　　但是想到老杰克村长对他说的话，素云涛顿时明白了过来，这个可怜的孩子没有家人，又怎么会有机会接触到这些东西呢，只怕每天只能为了最基础的温饱忙碌吧。
+　　林白遵照素云涛所说的话，果然七星龙渊剑成功被他收回了体内，而林白也清晰地感受到了自己可以随时把七星龙渊剑召唤出来，就像是是用自己的双手一样方便。
+　　林白向素云涛道了一声谢，把手轻轻贴在了蓝色水晶球上。
+　　果然，水晶球又通体露出了夺目的蓝色光晕。
+　　"又是一个先天满魂力，这个可是真正的好苗子啊。那把剑可真是不得了，只怕那号称器武魂最强的昊天锤，也未必能有这样的威势。"素云涛心中暗道，"回去我要立刻向分殿主报告，如果能吸收这个孩子加入武魂殿，我也许能进入法斯诺行省的武魂分殿。"
+　　正在这时，老杰克推门进来了，见到沉吟不语的素云涛，老杰克一脸紧张地问道："大师，怎么样，今年我们村子的孩子有能成为魂师的吗？"
+　　素云涛看了看他，沉声道："有两个。而且都是先天满魂力，可是其中一个的武魂是蓝银草。"
+　　"蓝银草，先天满魂力？天啊！"老杰克皱了一下眉，"是哪个孩子？"
+　　唐三走了出来，一脸淡然地道："是我。"
+　　老杰克看着唐三稚嫩的小脸，不由得有些心痛，向素云涛问道："大师，蓝银草就真的没办法修炼了吗？"
+　　"也不是完全不能修炼，但是废武魂就是废武魂，就算再提升，也没有办法进化。好了老杰克，我这次来也不是全无收获，正相反，你们村子出了一个天才啊。"素云涛笑道。
+　　"什么，天才？是谁？"老杰克瞬间懵了。
+　　"是这位林白小友，他也是先天满魂力，而且他的武魂，是一柄神剑啊。"素云涛回想起觉醒武魂时林白手中长剑的威势，不由得打了一个冷战。
+　　老杰克惊讶地看着林白，但马上就红了眼眶："好，好啊，好孩子，你的苦日子熬到头了。我就说老天爷不能那么不公平，这次你终于能够好好生活了。"
+　　林白心中也是十分感
+-----------------------------
+-----------------------------
+
+例子2：
+
+原文：
+穿越斗罗大陆世界
+你重生在了一个普通的家庭之中
+父母虽然武魂是普通的棍子与布匹
+但靠着母亲的武魂制作的精良布匹也让家中富裕了起来
+而本就不喜争斗的你也生起来就这样普通的过完一生的想法
+可惜事与愿违
+前几天自己父亲在后山找木料的时候
+失足
+摔死了
+发现者是唐三
+如果不是因为自己在父亲身上看到了很多针眼
+那些地方还有明显的中毒症状
+自己可能就信了这个蹩脚的理由
+这种伤口
+是谁出的手猜都不用猜
+
+原文：
+书名: 斗罗：武魂人皇幡，且入内一叙
+作者: 想上天的羊驼
+简介:
+（新书《斗罗：苍天已死，黄天当立》）
+人活一世，原则不能变，一是报恩，二是报仇。
+既然做出了选择，那么就要承受后果。
+"桀桀桀，唐三，且入幡内与你亲族一叙吧！"
+
+第1章 不共戴天
+
+（简介无力，且入内一观）
+　　【偶获人皇幡，借脑子一用、注：多女，不喜者勿入】
+　　圣魂村-
+　　阴云密布之下，地上的万物都略显灰暗。
+　　村落外，人头攒动，他们熙熙攘攘围成一个圈不断低声议论着什么。
+　　而在中央的，是个坟包，碑前有着三人一妇一老一幼。
+　　妇人看上去年纪约莫二十五六，面容秀丽。
+　　其脸上泪痕未干，红着眼无力的跪坐着，她靠着孩童的胸膛不断轻声抽泣。
+　　"小阿玄，伤心不用忍着的，哭吧......"老者叹了口气，将手轻轻放在孩童肩上。
+　　风玄双目直勾勾的盯着石碑，其上有着用刀刻出的些许字迹。
+　　轻声喃喃道："父亲说，男人之间的离别，不能掉眼泪。"
+　　闻声，妇人泪水夺目而出，将手抬高，心疼地揉了揉孩子的脑袋。
+　　老者低头一瞅，摇头说着："别听风木头的玩笑话，儿子为父亲哭，这叫德！"
+　　"可杰克爷爷，德的作用是什么？"
+　　老杰克眉头微皱，思索了一番。
+　　"是束缚！"孩童那有些苍白的精致小脸上眼神依旧，双手却在白色长袖中忍不住攥紧。
+　　'比起哭坟博取一个孝顺的名声，我更想报仇。'
+　　'杀父之仇，不共戴天！'
+　　由于过于用力而颤抖的拳头中，丝丝殷红血液顺着指缝渗出。
+　　六年了，来到这个世界这么长时间，风玄很少愤怒。
+　　原本重活一世，知道这里是斗罗大陆后还是有不少野心的。
+　　毕竟都穿越了，为什么还要当普通人。
+　　可惜现实是，父母修炼天赋一般，没有挂的情况下自己大概率是没有什么好武魂的。
+　　父亲风良是个木匠，武魂木棍，先天魂力半级，是十一级魂师，魂环自然是寻常的白色。
+　　母亲柳熙，武魂布匹，先天魂力两级，十七级魂师，魂环也是白色，不过年份比父亲的稍高一些。
+　　在这个畸形的世界里想当个强者基本就是靠爹妈。
+　　自家就这，能组合出来啥？
+　　想变异？有几个是正向的？
+　　哪怕是史莱克七怪里草鸡变异出来的马红俊，本身也有着严重的缺陷，天赋好又如何，要不是仙草，以他的性格能否活着达到封号都是个问题。
+　　不过自家的情况其实还算不错，因为母亲的武魂，自家在乡里之间算是家资殷实的富户。
+　　毕竟这布匹是武魂强化制作出来的，光材质便甩了其他同行不知道多少条街。
+　　他们家的布匹在贵族圈子里可是畅销货。
+　　木匠不一样，几乎哪个村子都有，大城里更是数不胜数，但也能补贴家用。
+　　既然家境如此，自己的目标自然就没有多远大了，就是开心些以后做个富家翁。
+　　先天条件就称不上好，奋斗争战还那么苦，干嘛吃力不讨好。
+　　斗罗大陆因为魂力有优化的作用，大多数人都称不上很丑，未来找位长相不错的过好一生便是。
+　　可惜事与愿违。
+　　前几天自己父亲在后山找木料的时候'失足'摔死了。
+　　发现者是唐三。
+　　如果不是因为自己在父亲身上看到了很多针眼，那些地方还有明显的中毒症状，自己可能就信了这个蹩脚的理由。
+　　这种伤口，是谁出的手猜都不用猜，毒针在斗罗大陆上有几个会的？
+　　可其他人不会多想，没有人会愿意相信一个连武魂都没觉醒的六岁孩子能杀成年人。
+　　风玄当时很想直接揭穿那满脸笑容，接受别人赞誉的伪善嘴脸。
+　　但很可惜，自己现在和父亲一样，都是个弱者。
+　　说出来肯定会被对方做掉。
+　　自己已经活了一世，不亏，死不死的无所谓。
+　　可母亲呢？失去丈夫和儿子，甚至有可能因为自己说出来的话而被连累。
+　　突然有点羡慕各种同人小说里的孤儿开局了，孑然一身不用在意身后事。
+　　至于说找唐昊说对方的异常，这种脑干缺失的行为风玄更不会做。
+　　他可是封号斗罗，真看不出来唐三有问题那才奇怪。
+　　不管怎么说，唐三都是对方亲儿子，自己说破了，大概率就是被一锤砸死扔进火炉助燃。
+　　呵，真是扯淡的人生。
+　　原本不打算和唐三有太多接触的，普通人和主角没必要有太多牵连，结果却直接变成了死仇，也不知道这辈子有没有机会报了这仇怨。
+　　阴沉的空气中突然多了些许潮气，豆大的雨点瞬息间滴落在风玄的头顶。
+　　老杰克见土地上的被雨水打湿的土地，神情一愣，接着环视着人群喊道："别围着了，回家收衣服！"
+　　众人这才反应过来，如群鸟兽散。
+　　老杰克刚要抬脚离开，发现坟前的二人没有动身的打算，摇头叹了口气，没有多说，跟着村民们一同离去。
+　　"哎~天哭喽~下雨喽~"
+　　"这对母子命苦啊，老天爷都不照拂。"
+　　"别说了，赶紧走，等会儿下大了。"
+　　听到人们的话，柳熙眼圈更红，泪水与雨水不断从清秀的脸上落下。
+　　风玄微微躬身为母亲遮挡住雨水，泥泞不平的地面上映出了自己的面容，很是扭曲。
+　　柳熙抱着儿子，红肿的眼见到孩子为自己挡雨，心中有了些许暖意。
+　　可丧夫之痛令她窒息。
+　　风玄抬眼望着四周，人群还是纷乱，不过之中没有孩童，显然唐三不在这里。
+　　雨中有一位身材高大的男子没有动作，风玄认得对方，他是唐昊。
+　　唐昊披着一块满是酒臭的破布静静盯着孤坟，又扫视了一眼母子二人。
+　　发现那孩子正盯着自己，其双眸十分空洞。
+　　他点了点头算是回应了对方，而后转身跟上人群往圣魂村走去。
+　　在雨中。
+　　唐昊不似周围的人那般着急，只是慢悠悠的走着。
+　　到了风玄家的门前，上前两步随手在角落扔了十几枚金魂币。
+　　他张开满是杂乱胡须的嘴，随口说道："木匠，算是给你送行的酒钱。"
+　　而后转身往自家走去。
+　　唐昊和风玄的父亲认识，村里就这么两家木匠铁匠，认识也挺正常。但称不上熟，只是相互之间买卖过一些材料。
+　　这次的事他知道前因后果，只能说算那木匠倒霉，找木料正好见到自己儿子练功。
+　　放他身上，也得锤死这家伙，毕竟不能增加底牌暴露的风险。
+　　左右不过是死个弱者而已，唐昊对此并没有多大感触，但总归是自己儿子动的手，而且还挺有眼缘，给点金魂币便算是赔了这人命钱。
+　　走了没几步，他想起什么似的，转身又回到了风玄家门前。
+　　从角落里捡出一枚金魂币，在披着的破布上擦了几下塞进口袋。
+　　"忘了留我自己的酒钱，下次补给你。"
+
+第2章 家人之间
+
+孤坟前-
+　　雷雨愈演愈烈。
+　　没了村民围观，柳熙只感觉一股浓浓的委屈涌上心头，终于舍得放声大哭。
+　　这撕心裂肺的哭喊声，令风玄心中的怒火愈发旺盛，可无奈与悲凉更甚。
+　　毕竟母亲在面前哭自己却无能为力。
+　　这仇自己拿什么报？
+　　对方可是有着封号斗罗的父亲，自身还有着那些从唐门盗的各种功法。
+　　别扯什么玄幻下水道有多弱，弱也只是相对的。
+　　一时间，只能将命运赌在后面的集中觉醒武魂了，如果没有好的武魂，那么报仇就剩最后一条路。
+　　去武魂殿举报赌命。
+　　运气好，这个消息得到重视，唐昊唐三有可能会被武魂殿绞杀。
+　　但更大概率被对方逃掉，哪怕唐昊重伤也很强。
+　　然后自己这个弱鸡被对方事后清算，那俩唐氏换个地方继续隐居。
+　　运气不好，自己一个小孩儿人微言轻，武魂殿没当回事，一切不了了之。
+　　亦或是被唐三发现告密，然后一句取死之道，惨死街头。
+　　总结，弱就是原罪。
+　　风玄心底郁气凝结，但低头看到母亲那张脸，他只能将一切压住。
+　　父亲走了，自己就是家里的顶梁柱，死也不能是现在。
+　　翌日-
+　　风玄坐在床边，将母亲额头的毛巾更换了一张。
+　　淋了一天的雨，不知为何自己没什么事。
+　　但母亲原本就因为父亲的死心力憔悴，加上淋雨这一出，直接病倒了。
+　　"阿玄，爷爷给你把药搞来了！"老杰克的声音在屋外响起，身影很快便出现在了门前。
+　　他见桌上有碗，便从包裹中拿出一包药粉。
+　　吆喝道："愣着干嘛，快去弄热水啊！"
+　　"好！"
+　　闻声，风玄这才反应过来，应了一句，连忙将一旁早已准备好的水壶给了老杰克。
+　　帮有些神志不清的柳熙服下药，二人皆是松了口气。
+　　老杰克饮下一碗水，感慨道："风木头家可真是出了个好孩子，小阿玄你比起唐三还要孝顺呢。"
+　　风玄手上动作一僵，脸上勉强扯出笑容，想张嘴，却不知该说些什么。
+　　孝顺......听起来真是讽刺啊。
+　　老杰克没注意他的样子，只是看着那紧蹙着眉头，脸苍白无色的柳熙，眼中不由泛起担忧。
+　　这好好的家，刚失去顶梁柱，另一位也出了事。
+　　扭脸瞅了一眼低头的孩子，伸出自己那粗糙的大手轻轻按住那脑袋揉了揉。
+　　安慰道："那医师说，你母亲应是精神打击加上风寒，需要慢慢调理。"
+　　"不要担心了，我这个村长多少还顶点用。"
+　　"你们家算是咱们圣魂村里最富裕的，估计也不缺东西，但你母亲生了病，到了饭点来我家里拿些吃食吧。"
+　　说罢，他伸手将桌子上的布包拿了过来，推到风玄面前。
+　　"这是治疗风寒的药粉，已经分好了，一日两次，早晚服用，可不能忘记。"
+　　看着那包裹，风玄重重点头，而后躬身行礼，"谢谢，杰克爷爷。"
+　　老杰克连忙将其扶起，"你这孩子，不至于这样。"
+　　"滴水之恩当涌泉相报！杰克爷爷，未来假如有机会的话，我会为您养老的！"
+　　心底则是补充道：'假如，我那个时候还活着的话......'
+　　见他这么认真，老杰克忍不住打趣，"哈哈，老头子我可不需要你这小家伙养老，我身子骨硬朗的很。"
+　　口上说着，心底则是对这孩子愈发满意。
+　　笑着笑着，突然想起什么，接着又道："哦对了，瞧我这记性。"
+　　"再过几天就是武魂觉醒的日子，正好我去诺丁城顺路到武魂殿打听了。"
+　　"来的那位应该是素云涛大师。"他挑着眉，说着上午的回忆，眼中尽是憧憬与羡慕。
+　　"那可不是咱们这些废武魂普通人能比的强者，听说是位战魂师，小阿玄，到时候你可要礼貌些。"
+　　风玄点头回了句："知道了。"
+　　老杰克说到兴头上，继续喋喋不休，"你这孩子我倒是不担心，懂事，从小就和别家孩子不一样，但别总板着脸，没事笑一笑......"
+　　实在忍不住，但打断又有些不太礼貌，风玄便转身没再继续听，坐回床头为母亲换毛巾。
+　　将手放在额头比对了一下温度，比起早上要好上一点，也不知是不是药的关系。
+　　"杰克爷爷，这药效果很好。"
+　　"这才刚吃下多久？真的假的？"老者上前两步没看出什么名堂。
+　　坐回原位，又喝了碗水解渴，看了看窗外的太阳，已经快到午时了。
+　　"我先回去做些吃食，等会儿你记得来拿啊！"没等风玄回话，老杰克就已经匆忙出去了。
+　　望着那身影，风玄心中有了些许暖意。
+　　其实早在太阳没出来的时候，杰克村长就来看过自家情况，淋了一夜雨，这位老好人好像比起自己还要紧张。
+　　知道母亲发烧后，便立刻动身，踏着泥泞的路赶去了诺丁城找医师买药。
+　　这是恩，人活一世原则不能变，一是报恩，二是报仇。
+　　将药收好后，走到院子里，做起了些健身锻炼的动作。
+　　这些其实自己懂的也不多，毕竟收藏夹永远是满的，行动永远是不存在的。
+　　但波比跳平板支撑之类的这些动作不难，很容易记住。
+　　一刻的时间很快过去。
+　　院落中的小小身影停下动作，呼出一口浊气。
+　　"怎么一点也不累？"风玄对此十分意外。
+　　在这之前他其实没做过几次锻炼。
+　　毕竟家里的情况，让他没什么变强的欲望，顺其自然就好，若是不出意外，魂师便是自己的终点。
+　　可没想到自己越做越精神，甚至呼吸都没有紊乱，肌肉也没有酸痛的感觉出现。
+　　"莫非我真有天赋？"
+　　忍不住猛拍自己的脑门，感觉错过了一个亿。
+　　没记错的话，魂力是会强化身体，促进生长的，先天魂力当然也是如此。
+　　斗罗大陆的某些孩子长得那么快就是因为这个。
+　　自己比起同龄人也高出去不少，再加上这身体素质，恐怕等级不会很低。
+　　"天意弄人么，可过几天可就要武魂觉醒了，自己才发现这个重点......"
+　　"锻炼身体也有助于提升魂力等级，当初不该摆烂的！"
+　　虽然很是后悔，但风玄明白，若不是父亲离世，自己根本不会想着训练这种事。
+　　而且普通的武魂出现高等级，基本可以断定是变异。
+　　木棍和布匹，不知道会变异出来些什么。
+　　"只要不是结合出来个墩布就好......"
+　　风玄瞥了眼院落中
+-----------------------------
+-----------------------------
+
+例子3：
+文案：
+穿越斗罗大陆世界
+你重生在了故事开始的地方圣魂村
+还获得了与前世看过的大多数小说一样的孤儿开局
+但与那些主角不同的是你只是一个天赋平平的普通人
+没有天赋靠山也没有所谓的金手指
+就在你准备放弃修炼
+转而利用这一世的颜值和学识
+去诺丁城钓富萝莉的时候
+他的金手指终于上线了
+白羽的金手指是小说里常见的系统
+名叫做赋灵修炼与任务系统
+系统有两个功能
+一个是赋予身体以及身体所属灵性
+另一个则是发布任务
+完成后可以进行抽奖
+
+原文：
+书名: 斗罗之我的武魂和魂环能自己修炼
+作者: 永夜司晨
+简介:
+穿越斗罗大陆，抱唐三大腿失败。
+白羽本以为这辈子只能咸鱼一生，混吃等死。
+没想到竟然觉醒了赋灵修炼与任务系统，只要赋予身体所属灵性，不管是身体、武魂，还是魂环，都能自动修炼！
+"你的身体因观摩了唐三施展自鬼影迷踪，获得了些许领悟，你鬼影迷踪学习进度提升至百分之百，恭喜你，学会了鬼影迷踪！"
+"你的武魂蓝银草因为观摩了动漫魔法禁书目录，从御坂美琴的战斗中获得了启发，激发了战意，获得了雷属性！"
+"你的魂环因为观摩了强者战斗，获得了激励，修炼效率临时获得大幅提升，预计一天修炼可提高年限三年！"
+……
+白羽一直没有努力，但是奈何身体、武功和魂环都太争气了，竟然莫名其妙就修炼到封号斗罗！
+——————
+本书又名：斗罗大陆之挂机就无敌，斗罗大陆之我的武魂和魂环实在是太争气了，斗罗大陆之莫名其妙就封号斗罗了……
+
+第1章 太妖孽了，我的身体能自己修炼！
+
+清晨，圣魂村后山的一座小山包上。
+　　刚刚目送完唐三从相邻不远的一座小山包上下山，白羽现在很悠闲。
+　　因为他的身体在自动挂机修炼！
+　　"你的身体因观摩了唐三施展鬼影迷踪，获得了些许领悟，你鬼影迷踪学习进度提升至百分之百，恭喜你，学会了鬼影迷踪！"
+　　脑海中，一阵提示音响起。
+　　"终于学会鬼影迷踪了，唐三，你的唐门绝学藏着掖着不教我，到最后不还是被我学到了吗！"
+　　白羽此刻心中很是得意。
+　　没办法！身体能够自动挂机学习、挂机修炼，就是这么牛皮！
+　　白羽本是一个穿越者。
+　　在一次熬夜看完最新出的斗罗大陆动漫后，一觉醒来就穿越到了斗罗大陆世界，降临到了主角唐三所在的圣魂村里。
+　　不过因为是穿越成了普通村民家庭的孩子。
+　　虽然和小说里的主角一样，父母开局就祭天了，但是白羽可不敢将一生的希望都放到不知道会不会出现的金手指上。
+　　于是，白羽很可耻地选择了去舔唐三，希望能学到玄天功。
+　　但是很可惜，即使白羽有意成为了唐三的朋友，各种旁敲侧击想要学习玄天功。
+　　可是唐三每次都是顾左右而言他，丝毫没有半点教授玄天功的意思。
+　　不过就在白羽准备放弃，转而利用这一世的颜值和学识，去诺丁城钓富萝莉的时候。
+　　他的金手指终于上线了！
+　　白羽的金手指是小说里常见的系统，名叫做赋灵修炼与任务系统。
+　　系统有两个功能。
+　　一个是赋予身体以及身体所属灵性，另一个则是发布任务，完成后可以进行抽奖。
+　　而系统开局的新手礼包，就是赋灵机会一次！
+　　通过系统的解释，白羽了解到了赋灵的效果，知道了赋灵身体后，身体就可以自动行动、学习和修炼。
+　　这让白羽不禁大喜。
+　　好家伙！这不就相当于前世游戏里的挂机外挂吗！
+　　自己终于可以实现前世的梦想，拥有可以拥有一具成熟的身体，可以自己行动、学习和修炼了吗！
+　　于是，白羽毫不犹豫地将系统新手礼包赠送的一次赋灵机会，赋予给了身体。
+　　准备让成熟的身体自己去代替自己钓富萝莉，这不是分分钟走上人生巅峰吗！
+　　不过柳暗花明又一村！
+　　就在白羽赋灵身体后，因为不远处唐三正在修炼，系统顿时提示起白羽，身体因为观摩唐三修炼玄天功，获得了些许领悟，然后拥有了玄天功的学习进度！
+　　白羽当时就愣住了。
+　　赋灵身体后，身体的自动学习能力这么挂壁的吗？
+　　竟然可以通过观摩，就学会别人的武功，这也太妖孽了吧！
+　　然后，白羽反手就选择了继续偷师。
+　　经过两年的时间，白羽已经成功偷师到了唐三修炼最频繁的玄天功和紫极魔瞳，然后今天终于将鬼影迷踪也偷学到了手！
+　　……
+　　"系统！"
+　　山坡上，白羽躺在绿茵茵的草地上，随着鬼影迷踪学习完成，白羽顿时轻声呼唤了一声系统。
+　　眼前，一道光幕瞬间浮现而出，一行行文字开始快速显现。
+　　这是白羽的属性面板。
+　　属性面板上方显示的内容是白羽的属性数据，而下面显示的则是系统发布的任务。
+　　宿主：白羽
+　　武魂：蓝银草（未觉醒）
+　　功法：
+　　玄天功：第一层（进度99.9%）
+　　武技：
+　　紫极魔瞳：入微（进度6%）
+　　鬼影迷踪：入门（1%）【入门、熟练、精通、掌控、宗师】
+　　————
+　　【1】觉醒武魂；奖励：赋灵机会x1，诸天随机抽奖机会x1
+　　【2】在武魂觉醒前，将玄天功修炼到一层圆满；奖励：赋灵机会x1，诸天随机抽奖机会x1
+　　"不错，终于将鬼影迷踪给学到手了，就是唐三这厮一直不在外面展示玄玉手和控鹤擒龙，这两门绝学有些难学到手啊！"
+　　看到属性面板上已经入门的鬼影迷踪，白羽心中很是满意。
+　　不过没能学到玄玉手和控鹤擒龙，却又着实让白羽心中有些遗憾。
+　　在唐三离开后，白羽继续躺在山坡上，享受着温暖和煦的朝阳。
+　　而身体则自动由学习状态转为修炼状态，修炼的是紫极魔瞳。
+　　不知过了多久，系统的声音再次响起。
+　　"日出已结束，日出紫气已消失，你的身体自动取消了紫极魔瞳的修炼，转为修炼玄天功。"
+　　"经过本次修炼，你的紫极魔瞳修炼进度，提升至6.04%！"
+　　"嗯？已经日出结束了吗？"
+　　听到系统的声音，白羽方才从迷迷糊糊中醒来，给身体下达了回家的命令。
+　　然后身体就自动站了起来，一边修炼着玄天功，一边向着山下走去。
+　　……
+　　不过就在白羽刚刚下完山，身体还没走几步。
+　　突然，脑海中系统的声音再次响起。
+　　"叮！经过你的身体的不懈修炼，你玄天功修炼进度已达到100%！"
+　　"恭喜宿主，在武魂觉醒前，将玄天功修炼至第一层圆满，完成任务【2】，获得奖励：赋灵机会x1，诸天抽奖机会x1！"
+　　这一次，听到脑海中系统的恭喜声，白羽心中很是惊喜。
+　　终于完成任务【2】了吗！
+　　自从两年前得到了系统，刷新出任务【1】和任务【2】后。
+　　见识到了赋灵身体效果的白羽，无时无刻不在期待着完成两个任务，获得新的赋灵机会以及他一直想要的诸天抽奖机会。
+　　赋灵身体可以自动学习、自动修炼和自动行动。
+　　那赋灵武功后，武功岂不是也能够自动修炼？
+　　"系统，开始抽取奖励！"
+　　终于完成了任务【2】，得到了奖励，白羽顿时迫不及待地进行了抽奖。
+　　"叮！抽奖机会已使用，系统正在抽奖中……"
+　　"恭喜宿主，获得……"
+
+
+第2章 无用的道德经？论如何在斗罗大陆实现咸鱼生活！
+
+"恭喜宿主，获得道德经一部！"
+　　脑海中，随着系统的提示声响起，本来还满怀期待的白羽不禁顿时一阵无语。
+　　什么嘛，道德经！？
+　　虽然前世的道德经在小说里都很牛皮，但自己又不是在什么修仙世界，读一读道德经就能直接开悟，然后原地飞升。
+　　自己这可是在低级玄幻世界啊，这道德经对自己而言基本无用！
+　　得！他就知道，这种随机的抽奖模式对他这种非酋来说，简直就是坑爹！
+　　白羽心中无语地想着。
+　　还是准备赋灵玄天功吧，赋灵了玄天功，他就能更好地咸鱼了！
+　　仿佛想到了未来的美好生活，白羽心中一阵期待。
+　　"系统，赋灵玄天功！"
+　　心中深吸了一口气，白羽顿时选择动用完成任务得到的赋灵机会。
+　　"叮！赋灵机会已使用，系统正在赋灵中……"
+　　"恭喜宿主！你的玄天功已成功诞生灵性，正在开始修炼中……"
+　　脑海中，随着系统的提示声响起，白羽顿时感觉到，不需要身体进行修炼，玄天功的内力竟然自己开始运转了起来。
+　　这就是赋灵玄天功的效果吗？
+　　能让玄天功变成一门成熟的武功，可以自己修炼。
+　　这样的武功，实在是太自觉，太争气了！！
+　　感觉到赋灵玄天功后的效果，白羽顿时激动地将意识遁入到了一片漆黑的空间。
+　　这是他的精神空间。
+　　然后随着白羽的心念一动，本来漆黑的精神空间竟然开始迅速变化起来。
+　　原本漆黑的精神空间，瞬间变成了一片银白。
+　　然后无数的现代家具和装饰开始出现，瓷砖、大床、吊灯、电脑、手办墙……
+　　眨眼间，原本漆黑一片的精神空间就变成了一间充满了现代风气的精致房屋。
+　　窗外还是一片蓝天大海和沙滩，温暖的阳光射进了房间。
+　　白羽躺在一张柔软的躺椅上，慵懒地打了个响指。
+　　一张小桌子顿时出现在了白羽的右手旁，上面整整齐齐地放着冒着腾腾热气的各种烧烤，还有各种零食，肥宅快乐水等等！
+　　这是白羽对赋灵身体开发出的新功能！
+　　赋灵身体可以让身体对自身的利用率达到100%。
+　　身体能够完全实现白羽所学到的一切，正是因为如此！
+　　而因为身体能够完美利用自己学到的知识，白羽就开始想。
+　　自己能不能将记忆里的各种食物的味道，还有看过的各种小说、电影、电视剧、动漫啥的在脑海里重现出来？
+　　最后就有了现在的场景！
+　　不过这样做会消耗身体的许多脑力，所以如果白羽将意识沉入精神空间，尽情享乐的话，就无法同时修炼玄天功了。
+　　而因为要赶着完成任务【2】，白羽只能忍着。
+　　不过现在在赋灵玄天功后，他终于解脱，可以尽情放纵，尽情嗨了！
+　　我真是太聪明了！
+　　白羽心中得意极了。
+　　虽然他不能改变斗罗大陆，但是他能改变自己啊！
+　　他梦想中的美妙咸鱼生活，终于在斗罗大陆实现了！
+　　……
+　　在成功改造了精神空间，将精神空间改造成了自己温暖的小窝后。
+　　白羽没有立刻就开始享受，而是再次想到了抽取到的道德经。
+　　对于自己第一次抽取的奖励，白羽还是有些不甘心。
+　　虽然心里感觉，自己抽取到的道德经十有八九就是一部普通的经书。
+　　但白羽还是心中不禁想，万一自己抽取到的是遮天这样的世界里的道德经呢？
+　　于是，白羽还是选择了将道德经取出，然后翻开起来。
+　　不过结果却还是让白羽失望了，这就是前世普通的道德经！
+　　"道可道，非常道；名可名，非常名……"
+　　白羽抱着最后一丝庆幸，念了一句道德经上的经文，可是发现并没有什么异常发生。
+　　于是，白羽只能心中叹气地准备将道德经收起来，然后继续咸鱼。
+　　太难了！
+　　果然！他这种非酋，安安心心咸鱼才是最适合他的。
+　　指望突然抽中无敌奖励什么的，根本是不可能的事情！
+　　但是就在白羽准备收起道德经的时候，脑海中系统的声音突然响了起来。
+　　"你念诵了道德经，你的玄天功第一次听到高深道经，陷入顿悟状态，持续时间三个时辰，修炼效率提升100%，玄天功升级进度达到0.1%。"
+　　"什么！"
+　　系统突然的提升声，让白羽不禁顿时愣住了，一时间有些怀疑自己是不是幻听了。
+　　他的玄天功听了道德经，陷入了顿悟状态？
+　　他的玄天功也这么妖孽的吗？！
+　　而且玄天功还特么能自动升级，我的天……
+　　等等！赋灵身体后，身体可以自动学习、自动修炼和自动行动，这是赋灵身体后的效果。
+　　所以赋灵武功后，武功也变成了这样，可以自己学习、自己修炼，然后还可以自己升级自己吗？
+　　这也太争气了吧！
+　　白羽心中顿时很是激动。
+　　他本来还以为想要得到更加高深的内功，只能靠以后完成任务，得到诸天抽奖机会了。
+　　没想到玄天功竟然这么争气，只要聆听道经就可以自己升级。
+　　这难道是因为道德经是道家的武功吗？
+　　一时间，白羽心中很是捶胸顿足。
+　　前世自己看小说的时候，小说里写到的那么多牛皮的道家典籍。
+　　什么黄庭经、庄子、列子之类的。
+　　自己怎么就不去特意翻看一下，搞得现在只知道道德经的前几句，真是太可惜了！
+　　发现道德经竟然如此有用，这实在是意外之喜。
+　　白羽很是满意，然后便让身体自己一边回家，一边小声念诵道德经，意识则再次进入精神空间享受去了。
+　　在斗罗大陆过了这么多年，前世的不少番剧他都忘得差不多了，是时候该温故知新了！
+　　因为白羽的家，就在圣魂村的后方靠边位置。
+　　所以白羽很快就回到了家，然后让身体一边念诵道德经，一边做饭。
+　　吃完早餐，白羽继续在精神空间里补番剧，什么天使降临我身边、干物妹小埋、路人女主啥的。
+　　而身体则盘坐在床上，念诵着道德经，帮助玄天功修炼。
+　　因为斗罗大陆世界规则的缘故，在没有觉醒武魂，吸收魂环的情况下，玄天功的进度一直卡在了第一层圆满（进度：100%）。
+　　不过赋灵玄天功后，玄天功的升级进度却一直在不断提升着。
+　　应该只需要一个多月的时间，就能升级完成了。
+　　时间一晃就到了傍晚。
+　　"系统！"
+　　感觉到身体因为饥饿，工作效率开始降低，白
+-----------------------------
+-----------------------------
+
+现在开始写：
+        `;
+
+        let templateContent = DEFAULT_TEMPLATE_CONTENT;
+        let sourceContent = '';
+        let generatedContent = '';
+        let templateFile = null;
+        let sourceFile = null;
+
+        // 分页相关变量
+        let resultPages = [];
+        let currentPageIndex = 0;
+
+        // 默认字体配置
+        const defaultFontConfig = {
+            FontName: "Microsoft YaHei",
+            FontSize: 32.0,
+            TextColor: 16764687, // #FFCC4F
+            Border: { Enable: 1, Color: 0, Size: 5 },
+            Shadow: { Enable: 1, Color: 0, BlurRadius: 4, Distance: 1 }
+        };
+
+        // ==================== 工具函数 ====================
+
+        function hexToInt(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return (r << 16) | (g << 8) | b;
+        }
+
+        function intToHex(colorInt) {
+            const r = (colorInt >> 16) & 0xFF;
+            const g = (colorInt >> 8) & 0xFF;
+            const b = colorInt & 0xFF;
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        function getFontConfig() {
+            return {
+                FontName: document.getElementById('font-name').value,
+                FontSize: parseFloat(document.getElementById('font-size').value),
+                TextColor: hexToInt(document.getElementById('text-color').value),
+                Border: {
+                    Enable: document.getElementById('border-enable').checked ? 1 : 0,
+                    Color: hexToInt(document.getElementById('border-color').value),
+                    Size: parseInt(document.getElementById('border-size').value)
+                },
+                Shadow: {
+                    Enable: document.getElementById('shadow-enable').checked ? 1 : 0,
+                    Color: hexToInt(document.getElementById('shadow-color').value),
+                    BlurRadius: parseInt(document.getElementById('shadow-blur-radius').value),
+                    Distance: parseInt(document.getElementById('shadow-distance').value)
+                }
+            };
+        }
+
+        // ==================== UI 函数 ====================
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            // 使用事件对象的target，但如果没有事件对象（例如从其他地方调用），则使用手动查找
+            const buttons = document.querySelectorAll('.tab-button');
+            const tabMap = { tab1: 0, tab2: 1, tab3: 2 };
+            if (tabMap[tabId] !== undefined) {
+                buttons[tabMap[tabId]].classList.add('active');
+            }
+
+            if (tabId === 'tab1') {
+                setTimeout(updatePreview, 100);
+            }
+        }
+
+        // 暴露给onclick使用，确保event存在
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            const buttons = document.querySelectorAll('.tab-button');
+            const tabMap = { tab1: 0, tab2: 1, tab3: 2 };
+            if (tabMap[tabId] !== undefined) {
+                buttons[tabMap[tabId]].classList.add('active');
+            }
+            if (tabId === 'tab1') {
+                setTimeout(updatePreview, 100);
+            }
+        };
+
+        let currentColorType = null;
+
+        function openColorPicker(colorType) {
+            currentColorType = colorType;
+            const colorInput = document.getElementById(colorType);
+            const currentColor = colorInput ? colorInput.value : '#FFCC4F';
+
+            const titles = {
+                'text-color': '选择文字颜色',
+                'border-color': '选择描边颜色',
+                'shadow-color': '选择阴影颜色'
+            };
+            document.getElementById('picker-title').textContent = titles[colorType] || '选择颜色';
+
+            document.getElementById('color-picker-input').value = currentColor;
+            document.getElementById('color-picker-hex').value = currentColor;
+
+            document.getElementById('color-picker-overlay').classList.add('active');
+            document.getElementById('color-picker-container').classList.add('active');
+        }
+
+        function closeColorPicker() {
+            document.getElementById('color-picker-overlay').classList.remove('active');
+            document.getElementById('color-picker-container').classList.remove('active');
+            currentColorType = null;
+        }
+
+        function updatePickerColor(color) {
+            document.getElementById('color-picker-hex').value = color;
+        }
+
+        function updatePickerFromHex(hexValue) {
+            let hex = hexValue.trim();
+            if (!hex.startsWith('#')) {
+                hex = '#' + hex;
+            }
+            if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                document.getElementById('color-picker-input').value = hex;
+            }
+        }
+
+        function confirmColorPicker() {
+            if (!currentColorType) return;
+
+            const color = document.getElementById('color-picker-input').value;
+            const colorInput = document.getElementById(currentColorType);
+            const previewId = currentColorType + '-preview';
+
+            if (colorInput) {
+                colorInput.value = color;
+                updateColorPreview(currentColorType, previewId);
+                updatePreview();
+            }
+
+            closeColorPicker();
+        }
+
+        function updateColorPreview(colorInputId, previewId) {
+            const color = document.getElementById(colorInputId).value;
+            document.getElementById(previewId).style.backgroundColor = color;
+            updatePreview();
+        }
+
+        function updatePreview() {
+            const canvas = document.getElementById('preview-canvas');
+            const ctx = canvas.getContext('2d');
+            const config = getFontConfig();
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const text = "预览文字 ABC 123";
+            const x = canvas.width / 2;
+            const y = canvas.height / 2;
+
+            const fontSize = config.FontSize;
+            ctx.font = `${fontSize}px ${config.FontName}`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            if (config.Shadow.Enable) {
+                ctx.shadowColor = intToHex(config.Shadow.Color);
+                ctx.shadowBlur = config.Shadow.BlurRadius;
+                ctx.shadowOffsetX = config.Shadow.Distance;
+                ctx.shadowOffsetY = config.Shadow.Distance;
+            } else {
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
+
+            if (config.Border.Enable) {
+                ctx.strokeStyle = intToHex(config.Border.Color);
+                ctx.lineWidth = config.Border.Size;
+                ctx.strokeText(text, x, y);
+            }
+
+            ctx.fillStyle = intToHex(config.TextColor);
+            ctx.fillText(text, x, y);
+        }
+
+        // ==================== 样式管理 ====================
+
+        function generateStyle() {
+            const config = getFontConfig();
+            const styleString = btoa(JSON.stringify(config));
+
+            const styleInput = document.getElementById('style-string');
+            styleInput.value = styleString;
+            styleInput.select();
+
+            try {
+                document.execCommand('copy');
+                showMessage('样式字符串已生成并复制到剪贴板', 'success');
+            } catch (err) {
+                showMessage('样式字符串已生成，请手动复制', 'info');
+            }
+        }
+
+        function loadStyleFromString() {
+            const styleString = document.getElementById('style-string').value.trim();
+            if (!styleString) {
+                showMessage('请输入样式字符串', 'warning');
+                return;
+            }
+
+            try {
+                const config = JSON.parse(atob(styleString));
+
+                if (config.FontName) {
+                    document.getElementById('font-name').value = config.FontName;
+                }
+                if (config.FontSize) {
+                    document.getElementById('font-size').value = config.FontSize;
+                }
+                if (config.TextColor !== undefined) {
+                    document.getElementById('text-color').value = intToHex(config.TextColor);
+                }
+                if (config.Border) {
+                    if (config.Border.Enable !== undefined) {
+                        document.getElementById('border-enable').checked = config.Border.Enable === 1;
+                    }
+                    if (config.Border.Color !== undefined) {
+                        document.getElementById('border-color').value = intToHex(config.Border.Color);
+                    }
+                    if (config.Border.Size !== undefined) {
+                        document.getElementById('border-size').value = config.Border.Size;
+                    }
+                }
+                if (config.Shadow) {
+                    if (config.Shadow.Enable !== undefined) {
+                        document.getElementById('shadow-enable').checked = config.Shadow.Enable === 1;
+                    }
+                    if (config.Shadow.Color !== undefined) {
+                        document.getElementById('shadow-color').value = intToHex(config.Shadow.Color);
+                    }
+                    if (config.Shadow.BlurRadius !== undefined) {
+                        document.getElementById('shadow-blur-radius').value = config.Shadow.BlurRadius;
+                    }
+                    if (config.Shadow.Distance !== undefined) {
+                        document.getElementById('shadow-distance').value = config.Shadow.Distance;
+                    }
+                }
+
+                updateColorPreview('text-color', 'text-color-preview');
+                updateColorPreview('border-color', 'border-color-preview');
+                updateColorPreview('shadow-color', 'shadow-color-preview');
+                updatePreview();
+                showMessage('样式已加载', 'success');
+            } catch (error) {
+                showMessage('样式字符串格式错误，无法加载', 'error');
+            }
+        }
+
+        // ==================== WFP文件处理 ====================
+
+        function handleWFPFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.name.endsWith('.wfp')) {
+                    wfpFiles.push(file);
+                }
+            });
+            updateWFPFileList();
+        }
+
+        function updateWFPFileList() {
+            const list = document.getElementById('wfp-file-list');
+            const items = document.getElementById('wfp-file-items');
+
+            if (wfpFiles.length === 0) {
+                list.style.display = 'none';
+                return;
+            }
+
+            list.style.display = 'block';
+            items.innerHTML = '';
+
+            wfpFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                        <span class="file-item-name">${file.name} (${formatFileSize(file.size)})</span>
+                        <button class="file-item-remove" onclick="removeWFPFile(${index})">删除</button>
+                    `;
+                items.appendChild(item);
+            });
+        }
+
+        function removeWFPFile(index) {
+            wfpFiles.splice(index, 1);
+            updateWFPFileList();
+            if (wfpFiles.length === 0) {
+                document.getElementById('wfp-file-input').value = '';
+            }
+        }
+
+        function clearWFPFiles() {
+            wfpFiles = [];
+            document.getElementById('wfp-file-input').value = '';
+            updateWFPFileList();
+            log('wfp-log', '文件列表已清空');
+        }
+
+        async function processWFPFiles() {
+            if (wfpFiles.length === 0) {
+                showMessage('请先选择WFP文件', 'warning');
+                return;
+            }
+
+            const statusEl = document.getElementById('wfp-status');
+            statusEl.className = 'status-indicator status-processing';
+            statusEl.textContent = '正在处理...';
+
+            log('wfp-log', `\n开始处理 ${wfpFiles.length} 个WFP文件...`);
+
+            try {
+                let successCount = 0;
+                for (let i = 0; i < wfpFiles.length; i++) {
+                    const file = wfpFiles[i];
+                    log('wfp-log', `\n处理文件 ${i + 1}/${wfpFiles.length}: ${file.name}`);
+
+                    try {
+                        const result = await processWFPFile(file);
+                        if (result) {
+                            successCount++;
+                            log('wfp-log', `✅ ${file.name} 处理成功`);
+                        } else {
+                            log('wfp-log', `⚠️ ${file.name} 未找到可修改的字体配置`);
+                        }
+                    } catch (error) {
+                        log('wfp-log', `❌ ${file.name} 处理失败: ${error.message}`);
+                    }
+                }
+
+                statusEl.className = 'status-indicator status-success';
+                statusEl.textContent = '处理完成';
+                log('wfp-log', `\n🎉 处理完成！成功修改 ${successCount}/${wfpFiles.length} 个文件`);
+                showMessage(`处理完成！成功修改 ${successCount}/${wfpFiles.length} 个文件`, 'success');
+            } catch (error) {
+                statusEl.className = 'status-indicator status-error';
+                statusEl.textContent = '处理失败';
+                log('wfp-log', `❌ 处理出错: ${error.message}`);
+                showMessage(`处理出错: ${error.message}`, 'error');
+            }
+        }
+
+        async function processWFPFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function(e) {
+                    try {
+                        const zip = await JSZip.loadAsync(e.target.result);
+                        const config = getFontConfig();
+                        let modified = false;
+
+                        for (const [path, zipEntry] of Object.entries(zip.files)) {
+                            if (path.endsWith('timeline.wesproj')) {
+                                const content = await zipEntry.async('string');
+                                const modifiedContent = modifyTimelineFont(content, config);
+
+                                if (modifiedContent !== content) {
+                                    zip.file(path, modifiedContent);
+                                    modified = true;
+                                }
+                            }
+                        }
+
+                        if (modified) {
+                            const blob = await zip.generateAsync({ type: 'blob' });
+                            downloadFile(blob, file.name.replace('.wfp', '.modified.wfp'));
+                            resolve(true);
+                        } else {
+                            resolve(false);
+                        }
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function modifyTimelineFont(timelineContent, fontConfig) {
+            try {
+                const data = JSON.parse(timelineContent);
+                let modified = false;
+
+                function updateFontConfig(obj) {
+                    if (typeof obj !== 'object' || obj === null) return;
+
+                    if (Array.isArray(obj)) {
+                        obj.forEach(item => updateFontConfig(item));
+                    } else {
+                        if (obj.subtitleSource && typeof obj.subtitleSource === 'string') {
+                            try {
+                                const subtitleData = JSON.parse(obj.subtitleSource);
+                                if (updateSubtitleFonts(subtitleData, fontConfig)) {
+                                    obj.subtitleSource = JSON.stringify(subtitleData, null, 2);
+                                    modified = true;
+                                }
+                            } catch (e) {
+                                // 忽略JSON解析错误
+                            }
+                        }
+
+                        Object.values(obj).forEach(value => {
+                            if (typeof value === 'object' && value !== null) {
+                                updateFontConfig(value);
+                            }
+                        });
+                    }
+                }
+
+                function updateSubtitleFonts(subtitleData, fontConfig) {
+                    let subtitleModified = false;
+
+                    function updateTemplateFonts(templateObj) {
+                        if (typeof templateObj !== 'object' || templateObj === null) return;
+
+                        if (templateObj.TextData && Array.isArray(templateObj.TextData)) {
+                            templateObj.TextData.forEach(textItem => {
+                                if (textItem.Basic) {
+                                    textItem.Basic.FontName = fontConfig.FontName;
+                                    textItem.Basic.FontSize = fontConfig.FontSize;
+                                    textItem.Basic.FontHSize = fontConfig.FontSize;
+                                    textItem.Basic.FontVSize = fontConfig.FontSize;
+                                    if (textItem.Basic.TextColor) {
+                                        textItem.Basic.TextColor = [{ Color: fontConfig.TextColor }];
+                                    }
+                                    subtitleModified = true;
+                                }
+                                if (textItem.Border) {
+                                    textItem.Border.Enable = fontConfig.Border.Enable;
+                                    textItem.Border.Color = fontConfig.Border.Color;
+                                    textItem.Border.Size = fontConfig.Border.Size;
+                                    subtitleModified = true;
+                                }
+                                if (textItem.Shadow) {
+                                    textItem.Shadow.Enable = fontConfig.Shadow.Enable;
+                                    textItem.Shadow.Color = fontConfig.Shadow.Color;
+                                    textItem.Shadow.BlurRadius = fontConfig.Shadow.BlurRadius;
+                                    textItem.Shadow.Distance = fontConfig.Shadow.Distance;
+                                    subtitleModified = true;
+                                }
+                            });
+                        }
+
+                        Object.values(templateObj).forEach(value => {
+                            if (typeof value === 'object' && value !== null) {
+                                updateTemplateFonts(value);
+                            }
+                        });
+                    }
+
+                    if (subtitleData.Templates) {
+                        Object.values(subtitleData.Templates).forEach(templateData => {
+                            updateTemplateFonts(templateData);
+                        });
+                    }
+
+                    return subtitleModified;
+                }
+
+                updateFontConfig(data);
+
+                if (modified) {
+                    return JSON.stringify(data, null, 2);
+                } else {
+                    return timelineContent;
+                }
+            } catch (error) {
+                log('wfp-log', `修改字体配置时出错: ${error.message}`);
+                return timelineContent;
+            }
+        }
+
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function log(logId, message) {
+            const logEl = document.getElementById(logId);
+            logEl.textContent += message + '\n';
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function clearLog(logId) {
+            const logEl = document.getElementById(logId);
+            if (logId === 'wfp-log') {
+                logEl.textContent = '欢迎使用WFP字体更改工具！\n\n请选择要处理的WFP文件，然后点击"开始处理"按钮。';
+            } else if (logId === 'novel-log') {
+                logEl.textContent = '欢迎使用小说章节删除工具！\n\n请选择要处理的TXT文件，然后点击"处理文件"按钮。';
+            } else if (logId === 'copywriting-log') {
+                logEl.textContent = '欢迎使用文案模仿工具！\n\n请先配置DeepSeek API Key，然后选择文案模板文件和原文文件，点击"生成文案"按钮开始处理。';
+            }
+        }
+
+        // ==================== 小说章节删除 ====================
+
+        const chapterPattern = /^\s*(?:[【\[]?\s*第\s*[\d零一二三四五六七八九十百千万]+\s*[章节回][\s_、：:—\-]*[^\n\r]*[】\]]?|\d{2,}\s+[一-鿿][^\n\r]*)\s*$/;
+        const sequencePattern = /^\s*[【\[]?\s*[\d零一二三四五六七八九十百千万]+\s*[】\]]?\s*$/;
+
+        function handleNovelFile(file) {
+            if (!file) return;
+
+            novelFile = file;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    novelContent = e.target.result;
+                    const charCount = novelContent.length;
+
+                    document.getElementById('novel-file-name').textContent = file.name;
+                    document.getElementById('novel-file-size').textContent = formatFileSize(file.size);
+                    document.getElementById('novel-char-count').textContent = charCount.toLocaleString() + ' 字符';
+
+                    log('novel-log', `已加载文件: ${file.name}\n文件大小: ${formatFileSize(file.size)}\n字符数量: ${charCount.toLocaleString()}`);
+                } catch (error) {
+                    showMessage('读取文件失败: ' + error.message, 'error');
+                }
+            };
+
+            reader.onerror = function() {
+                showMessage('读取文件失败', 'error');
+            };
+
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function processNovelFile() {
+            if (!novelContent) {
+                showMessage('请先选择小说文件', 'warning');
+                return;
+            }
+
+            const statusEl = document.getElementById('novel-status');
+            statusEl.className = 'status-indicator status-processing';
+            statusEl.textContent = '正在处理...';
+
+            log('novel-log', '\n开始处理小说文件...');
+
+            try {
+                const removeChapters = document.getElementById('remove-chapters').checked;
+                const removeSequences = document.getElementById('remove-sequences').checked;
+
+                const result = removeNovelChapters(novelContent, removeChapters, removeSequences);
+                processedContent = result.content;
+                deletedItems = result.deleted;
+
+                const maxDisplayLength = 50000;
+                const truncateText = (text) => {
+                    if (text.length <= maxDisplayLength) {
+                        return text;
+                    }
+                    return text.substring(0, maxDisplayLength) + '\n\n... (内容过长，仅显示前50000字符，完整内容将在保存时包含)';
+                };
+
+                document.getElementById('novel-original').textContent = truncateText(novelContent);
+                document.getElementById('novel-processed').textContent = truncateText(processedContent);
+                document.getElementById('novel-deleted').textContent =
+                    '删除的章节标题:\n' + deletedItems.chapters.join('\n') +
+                    '\n\n删除的数字序列:\n' + deletedItems.sequences.join('\n');
+
+                document.getElementById('total-chapters').textContent = deletedItems.chapters.length;
+                document.getElementById('total-sequences').textContent = deletedItems.sequences.length;
+                document.getElementById('novel-stats').style.display = 'grid';
+
+                showNovelTab('processed');
+
+                statusEl.className = 'status-indicator status-success';
+                statusEl.textContent = '处理完成';
+
+                log('novel-log', `\n处理完成！\n删除章节标题: ${deletedItems.chapters.length} 个\n删除数字序列: ${deletedItems.sequences.length} 个`);
+                showMessage(`处理完成！删除了 ${deletedItems.chapters.length} 个章节标题和 ${deletedItems.sequences.length} 个数字序列`, 'success');
+            } catch (error) {
+                statusEl.className = 'status-indicator status-error';
+                statusEl.textContent = '处理失败';
+                log('novel-log', `处理出错: ${error.message}`);
+                showMessage(`处理出错: ${error.message}`, 'error');
+            }
+        }
+
+        function removeNovelChapters(content, removeChapters, removeSequences) {
+            const lines = content.split(/\r?\n/);
+            const cleanedLines = [];
+            const deleted = { chapters: [], sequences: [] };
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const stripped = line.trim();
+
+                if (removeChapters && chapterPattern.test(stripped)) {
+                    deleted.chapters.push(line);
+                    continue;
+                } else if (removeSequences && sequencePattern.test(stripped)) {
+                    deleted.sequences.push(line);
+                    continue;
+                } else {
+                    cleanedLines.push(line);
+                }
+            }
+
+            let cleanedContent = cleanedLines.join('\n');
+            cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n');
+            cleanedContent = cleanedContent.replace(/^\n+/, '');
+            if (content.endsWith('\n') && !cleanedContent.endsWith('\n')) {
+                cleanedContent += '\n';
+            }
+
+            return { content: cleanedContent, deleted: deleted };
+        }
+
+        function showNovelTab(tab) {
+            currentNovelTab = tab;
+            document.getElementById('novel-original').style.display = tab === 'original' ? 'block' : 'none';
+            document.getElementById('novel-processed').style.display = tab === 'processed' ? 'block' : 'none';
+            document.getElementById('novel-deleted').style.display = tab === 'deleted' ? 'block' : 'none';
+
+            // 更新按钮状态：通过查找所有包含showNovelTab的按钮并移除active类
+            document.querySelectorAll('.card .button-group .button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            // 然后根据tab激活对应的按钮
+            const buttons = document.querySelectorAll('.card .button-group .button');
+            const tabMap = { original: 0, processed: 1, deleted: 2 };
+            if (tabMap[tab] !== undefined && buttons[tabMap[tab]]) {
+                buttons[tabMap[tab]].classList.add('active');
+            }
+        }
+
+        // 重新绑定showNovelTab到window，并处理event
+        window.showNovelTab = function(tab) {
+            currentNovelTab = tab;
+            document.getElementById('novel-original').style.display = tab === 'original' ? 'block' : 'none';
+            document.getElementById('novel-processed').style.display = tab === 'processed' ? 'block' : 'none';
+            document.getElementById('novel-deleted').style.display = tab === 'deleted' ? 'block' : 'none';
+
+            const buttons = document.querySelectorAll('#novel-original, #novel-processed, #novel-deleted').forEach(el => {
+                // 不做样式处理，用上面方法
+            });
+            // 更可靠的方式：给按钮加active类
+            document.querySelectorAll('.card .button-group .button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const btnContainer = document.querySelector('.card .button-group');
+            if (btnContainer) {
+                const btns = btnContainer.querySelectorAll('.button');
+                const tabMap = { original: 0, processed: 1, deleted: 2 };
+                if (tabMap[tab] !== undefined && btns[tabMap[tab]]) {
+                    btns[tabMap[tab]].classList.add('active');
+                }
+            }
+        };
+
+        function saveNovelResult() {
+            if (!processedContent) {
+                showMessage('没有可保存的处理结果', 'warning');
+                return;
+            }
+
+            const blob = new Blob([processedContent], { type: 'text/plain;charset=utf-8' });
+            const filename = novelFile ? novelFile.name.replace('.txt', '.cleaned.txt') : 'cleaned_novel.txt';
+            downloadFile(blob, filename);
+            showMessage('处理结果已保存', 'success');
+        }
+
+        function clearNovelFile() {
+            novelFile = null;
+            novelContent = '';
+            processedContent = '';
+            deletedItems = { chapters: [], sequences: [] };
+
+            document.getElementById('novel-file-input').value = '';
+
+            document.getElementById('novel-file-name').textContent = '0';
+            document.getElementById('novel-file-size').textContent = '0 B';
+            document.getElementById('novel-char-count').textContent = '0 字符';
+            document.getElementById('novel-stats').style.display = 'none';
+            document.getElementById('novel-original').textContent = '';
+            document.getElementById('novel-processed').textContent = '';
+            document.getElementById('novel-deleted').textContent = '';
+
+            log('novel-log', '文件已清除');
+        }
+
+        // ==================== 消息提示 ====================
+
+        function showMessage(message, type) {
+            const messageEl = document.createElement('div');
+            messageEl.textContent = message;
+            messageEl.style.position = 'fixed';
+            messageEl.style.bottom = '20px';
+            messageEl.style.right = '20px';
+            messageEl.style.padding = '15px 20px';
+            messageEl.style.borderRadius = '10px';
+            messageEl.style.fontWeight = '500';
+            messageEl.style.zIndex = '10000';
+            messageEl.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.3)';
+            messageEl.style.maxWidth = '300px';
+            messageEl.style.transition = 'all 0.3s ease';
+            messageEl.style.color = 'white';
+
+            if (type === 'success') {
+                messageEl.style.background = 'linear-gradient(90deg, #28a745, #20c997)';
+            } else if (type === 'error') {
+                messageEl.style.background = 'linear-gradient(90deg, #dc3545, #e83e8c)';
+            } else if (type === 'warning') {
+                messageEl.style.background = 'linear-gradient(90deg, #ffc107, #fd7e14)';
+                messageEl.style.color = '#212529';
+            } else {
+                messageEl.style.background = 'linear-gradient(90deg, #6c757d, #495057)';
+            }
+
+            document.body.appendChild(messageEl);
+
+            setTimeout(() => {
+                messageEl.style.opacity = '0';
+                messageEl.style.transform = 'translateY(10px)';
+                setTimeout(() => {
+                    if (messageEl.parentNode) {
+                        document.body.removeChild(messageEl);
+                    }
+                }, 300);
+            }, 3000);
+        }
+
+        // ==================== 拖拽功能 ====================
+
+        function setupDragDrop() {
+            const wfpDropArea = document.getElementById('wfp-drop-area');
+            wfpDropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('dragover');
+            });
+
+            wfpDropArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+            });
+
+            wfpDropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+
+                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.wfp'));
+                if (files.length > 0) {
+                    handleWFPFiles(files);
+                    showMessage(`已添加 ${files.length} 个WFP文件`, 'success');
+                }
+            });
+
+            const novelDropArea = document.getElementById('novel-drop-area');
+            novelDropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('dragover');
+            });
+
+            novelDropArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+            });
+
+            novelDropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+
+                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.txt'));
+                if (files.length > 0) {
+                    handleNovelFile(files[0]);
+                    showMessage('已加载小说文件', 'success');
+                }
+            });
+
+            const sourceDropArea = document.getElementById('source-drop-area');
+            sourceDropArea.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add('dragover');
+            });
+
+            sourceDropArea.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+            });
+
+            sourceDropArea.addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.remove('dragover');
+
+                const files = Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.txt'));
+                if (files.length > 0) {
+                    handleSourceFile(files[0]);
+                    showMessage('已加载原文文件', 'success');
+                }
+            });
+        }
+
+        // ==================== 文案模仿功能 ====================
+
+        function loadApiKey() {
+            const savedKey = localStorage.getItem('deepseek_api_key');
+            if (savedKey) {
+                document.getElementById('deepseek-api-key').value = savedKey;
+            }
+        }
+
+        function saveApiKey() {
+            const apiKey = document.getElementById('deepseek-api-key').value.trim();
+            if (apiKey) {
+                localStorage.setItem('deepseek_api_key', apiKey);
+                log('copywriting-log', 'API Key已保存');
+            }
+        }
+
+        function loadCustomTemplate() {
+            document.getElementById('template-file-input').click();
+        }
+
+        function handleTemplateFile(file) {
+            if (!file) return;
+
+            templateFile = file;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    templateContent = e.target.result;
+                    document.getElementById('template-file-name').textContent = file.name;
+                    document.getElementById('template-file-info').style.display = 'block';
+
+                    log('copywriting-log', `已加载自定义文案模板文件: ${file.name}\n文件大小: ${formatFileSize(file.size)}\n字符数量: ${templateContent.length.toLocaleString()}`);
+                    showMessage('已加载自定义模板文件', 'success');
+                } catch (error) {
+                    showMessage('读取模板文件失败: ' + error.message, 'error');
+                    log('copywriting-log', `读取模板文件失败: ${error.message}`);
+                }
+            };
+
+            reader.onerror = function() {
+                showMessage('读取模板文件失败', 'error');
+                log('copywriting-log', '读取模板文件失败');
+            };
+
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        function handleSourceFile(file) {
+            if (!file) return;
+
+            sourceFile = file;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const fullContent = e.target.result;
+                    const originalCharCount = fullContent.length;
+
+                    sourceContent = fullContent.substring(0, 8000);
+                    const charCount = sourceContent.length;
+
+                    document.getElementById('source-file-name').textContent = file.name;
+                    document.getElementById('source-file-size').textContent = formatFileSize(file.size);
+                    if (originalCharCount > 8000) {
+                        document.getElementById('source-char-count').textContent = charCount.toLocaleString() +
+                            ' 字符 (已截取，原文件: ' + originalCharCount.toLocaleString() + ' 字符)';
+                    } else {
+                        document.getElementById('source-char-count').textContent = charCount.toLocaleString() + ' 字符';
+                    }
+                    document.getElementById('source-file-info').style.display = 'block';
+
+                    if (originalCharCount > 8000) {
+                        log('copywriting-log', `已加载原文文件: ${file.name}\n文件大小: ${formatFileSize(file.size)}\n已截取前 ${charCount.toLocaleString()} 字符 (原文件共 ${originalCharCount.toLocaleString()} 字符)`);
+                        showMessage(`已加载原文文件（仅取前8000字符）`, 'success');
+                    } else {
+                        log('copywriting-log', `已加载原文文件: ${file.name}\n文件大小: ${formatFileSize(file.size)}\n字符数量: ${charCount.toLocaleString()}`);
+                        showMessage('已加载原文文件', 'success');
+                    }
+                } catch (error) {
+                    showMessage('读取原文文件失败: ' + error.message, 'error');
+                    log('copywriting-log', `读取原文文件失败: ${error.message}`);
+                }
+            };
+
+            reader.onerror = function() {
+                showMessage('读取原文文件失败', 'error');
+                log('copywriting-log', '读取原文文件失败');
+            };
+
+            reader.readAsText(file, 'UTF-8');
+        }
+
+        // 生成文案
+        async function generateCopywriting() {
+            saveApiKey();
+
+            const apiKey = document.getElementById('deepseek-api-key').value.trim();
+            if (!apiKey) {
+                showMessage('请先输入DeepSeek API Key', 'warning');
+                return;
+            }
+
+            if (!templateContent || templateContent.trim() === '' || templateContent.includes('请在这里粘贴')) {
+                showMessage('模板内容为空，请检查代码中的 DEFAULT_TEMPLATE_CONTENT 变量或选择自定义模板文件', 'warning');
+                return;
+            }
+
+            if (!sourceContent) {
+                showMessage('请先选择待处理的原文文件', 'warning');
+                return;
+            }
+
+            // 获取用户选择的模型
+            const selectedModel = document.getElementById('model-selector').value;
+
+            const statusEl = document.getElementById('copywriting-status');
+            const logStatusEl = document.getElementById('copywriting-log-status');
+            const resultEl = document.getElementById('copywriting-result');
+            const generateBtn = document.getElementById('generate-btn');
+
+            statusEl.className = 'status-indicator status-processing';
+            statusEl.textContent = '正在生成...';
+            logStatusEl.className = 'status-indicator status-processing';
+            logStatusEl.textContent = '正在处理...';
+
+            generateBtn.disabled = true;
+            generateBtn.textContent = '生成中...';
+
+            resultEl.textContent = '正在生成文案，请稍候...';
+
+            log('copywriting-log', '\n开始生成文案...');
+            log('copywriting-log', `使用模型: ${selectedModel}`);
+            log('copywriting-log', `模板来源: ${templateFile ? '自定义文件 - ' + templateFile.name : '预置模板'}`);
+            log('copywriting-log', `原文文件: ${sourceFile ? sourceFile.name : '未知'}`);
+
+            try {
+                const systemPrompt = `你是一个专业的文案写作助手。请根据提供的文案模板示例，模仿其风格和格式，为给定的原文生成文案。
+
+要求：
+1. 仔细阅读文案模板示例，理解其风格、格式和特点
+2. 根据原文内容，模仿模板的风格生成新的文案
+3. 文案格式要求：没有标点符号，句与句子之间分行
+4. 保持文案的连贯性和可读性
+5. 生成三个不同版本的文案，每个版本之间用"-----------------------------"分隔
+
+文案模板示例：
+${templateContent}
+
+现在请为以下原文生成文案：`;
+
+                const userPrompt = sourceContent;
+
+                log('copywriting-log', `正在调用DeepSeek API (模型: ${selectedModel})...`);
+
+                const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: selectedModel, // 使用用户选择的模型
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 4000
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    let errorMsg = errorData.error?.message || `API请求失败: ${response.status} ${response.statusText}`;
+
+                    if (response.status === 0 || errorMsg.includes('CORS') || errorMsg.includes('Failed to fetch')) {
+                        errorMsg = '跨域请求被阻止。请检查：\n1. DeepSeek API是否支持浏览器直接调用\n2. 或使用代理服务器转发请求\n3. 或使用浏览器插件（如CORS Unblock）\n\n原错误：' + errorMsg;
+                    }
+
+                    throw new Error(errorMsg);
+                }
+
+                const data = await response.json();
+
+                if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                    throw new Error('API返回数据格式错误');
+                }
+
+                generatedContent = data.choices[0].message.content;
+
+                parseAndDisplayResults(generatedContent);
+
+                document.getElementById('save-btn').style.display = 'inline-flex';
+
+                statusEl.className = 'status-indicator status-success';
+                statusEl.textContent = '生成完成';
+                logStatusEl.className = 'status-indicator status-success';
+                logStatusEl.textContent = '处理完成';
+
+                log('copywriting-log', '\n✅ 文案生成成功！');
+                log('copywriting-log', `生成内容长度: ${generatedContent.length.toLocaleString()} 字符`);
+                showMessage('文案生成成功！', 'success');
+
+            } catch (error) {
+                statusEl.className = 'status-indicator status-error';
+                statusEl.textContent = '生成失败';
+                logStatusEl.className = 'status-indicator status-error';
+                logStatusEl.textContent = '处理失败';
+
+                resultEl.textContent = `生成失败: ${error.message}`;
+
+                document.getElementById('pagination-controls').style.display = 'none';
+
+                log('copywriting-log', `\n❌ 生成失败: ${error.message}`);
+                showMessage(`生成失败: ${error.message}`, 'error');
+            } finally {
+                generateBtn.disabled = false;
+                generateBtn.textContent = '生成文案';
+            }
+        }
+
+        function saveCopywritingResult() {
+            if (!generatedContent) {
+                showMessage('没有可保存的内容', 'warning');
+                return;
+            }
+
+            const blob = new Blob([generatedContent], { type: 'text/plain;charset=utf-8' });
+            const filename = sourceFile ? sourceFile.name.replace('.txt', '_文案.txt') : 'generated_copywriting.txt';
+            downloadFile(blob, filename);
+            showMessage('文案已保存', 'success');
+        }
+
+        function parseAndDisplayResults(content) {
+            const separator = '-----------------------------';
+            const parts = content.split(separator).map(part => part.trim()).filter(part => part.length > 0);
+
+            if (parts.length === 0) {
+                resultPages = [content.trim()];
+            } else {
+                resultPages = parts;
+            }
+
+            currentPageIndex = 0;
+
+            showPage(currentPageIndex);
+
+            const paginationControls = document.getElementById('pagination-controls');
+            if (resultPages.length > 1) {
+                paginationControls.style.display = 'block';
+                updatePaginationButtons();
+            } else {
+                paginationControls.style.display = 'none';
+            }
+        }
+
+        function showPage(pageIndex) {
+            if (pageIndex < 0 || pageIndex >= resultPages.length) {
+                return;
+            }
+
+            const resultEl = document.getElementById('copywriting-result');
+            resultEl.textContent = resultPages[pageIndex];
+
+            document.getElementById('page-info').textContent = `第 ${pageIndex + 1} 页 / 共 ${resultPages.length} 页`;
+
+            updatePaginationButtons();
+        }
+
+        function updatePaginationButtons() {
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            prevBtn.disabled = currentPageIndex === 0;
+            nextBtn.disabled = currentPageIndex === resultPages.length - 1;
+        }
+
+        function previousPage() {
+            if (currentPageIndex > 0) {
+                currentPageIndex--;
+                showPage(currentPageIndex);
+            }
+        }
+
+        function nextPage() {
+            if (currentPageIndex < resultPages.length - 1) {
+                currentPageIndex++;
+                showPage(currentPageIndex);
+            }
+        }
+
+        function clearCopywritingFiles() {
+            templateFile = null;
+            sourceFile = null;
+            templateContent = DEFAULT_TEMPLATE_CONTENT;
+            sourceContent = '';
+            generatedContent = '';
+
+            resultPages = [];
+            currentPageIndex = 0;
+
+            document.getElementById('template-file-input').value = '';
+            document.getElementById('source-file-input').value = '';
+
+            document.getElementById('template-file-name').textContent = '无';
+            document.getElementById('template-file-info').style.display = 'none';
+
+            document.getElementById('source-file-name').textContent = '无';
+            document.getElementById('source-file-size').textContent = '0 B';
+            document.getElementById('source-char-count').textContent = '0 字符';
+            document.getElementById('source-file-info').style.display = 'none';
+
+            document.getElementById('copywriting-result').textContent = '生成的结果将显示在这里...';
+            document.getElementById('save-btn').style.display = 'none';
+            document.getElementById('pagination-controls').style.display = 'none';
+
+            log('copywriting-log', '文件已清除');
+        }
+
+        // ==================== 初始化 ====================
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(updatePreview, 100);
+
+            loadApiKey();
+
+            document.getElementById('deepseek-api-key').addEventListener('blur', saveApiKey);
+
+            setupDragDrop();
+
+            document.getElementById('font-name').addEventListener('change', updatePreview);
+            document.getElementById('font-size').addEventListener('input', updatePreview);
+            document.getElementById('text-color').addEventListener('input', function() {
+                updateColorPreview('text-color', 'text-color-preview');
+            });
+            document.getElementById('border-size').addEventListener('input', updatePreview);
+            document.getElementById('shadow-blur-radius').addEventListener('input', updatePreview);
+            document.getElementById('shadow-distance').addEventListener('input', updatePreview);
+
+            document.getElementById('color-picker-input').addEventListener('input', function() {
+                updatePickerColor(this.value);
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeColorPicker();
+                }
+            });
+
+            window.addEventListener('resize', function() {
+                setTimeout(updatePreview, 100);
+            });
+        });
+    </script>
+</body>
+</html>
